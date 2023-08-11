@@ -10,7 +10,7 @@ tags:
   - example
   - tags
 ogImage: ""
-description: aaa
+description: ChatGPTの小説生成テスト的なやつ
 canonicalURL: https://example.org/my-article-was-already-posted-here
 ---
 

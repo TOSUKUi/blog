@@ -1,7 +1,7 @@
 ---
 title: 自宅とクラウド間Wireguardの設定方法
 author: amemiya
-pubDatetime: 2023-08-11T19:55:19Z
+pubDatetime: 2023-08-11T10:55:19Z
 postSlug: wireguard-between-home-and-cloud
 featured: true
 draft: false
@@ -35,6 +35,8 @@ GCPで立てたインスタンスへの特定のポート(80, 443, 25565)の通�
 - 自宅サーバー3台(いずれもubuntu22.04)
     - worker用
         - <a target="_blank" href="https://www.amazon.co.jp/dp/B0BYNM95ZJ?psc=1&amp;ref=ppx_pop_dt_b_product_details&_encoding=UTF8&tag=tosukui-22&linkCode=ur2&linkId=6a2fc535854cf2c3d23f8fb3452e8e5b&camp=247&creative=1211">Beelink Mini PC、AMD Ryzen7 5800H nvme 500GB 16GB RAM</a> x 2
+            - 買った当初は45000円でスペックに対して意味不明な安さをしていた
+            - まだCPU使用率あまりないがぶん回した時に夜寝られるかは心配なポイント
 
     - control-plane用
         - <a target="_blank" href="https://amzn.to/3KxxyTl">NIPOGI Intel N95 mini pc</a> x 1

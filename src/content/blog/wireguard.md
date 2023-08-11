@@ -1,0 +1,214 @@
+---
+title: 自宅とクラウド間Wireguardの設定方法
+author: amemiya
+pubDatetime: 2023-08-10T05:17:19Z
+postSlug: wireguard-between-home-and-cloud
+featured: true
+draft: false
+tags: [自宅サーバー,VPN,Wireguard,自宅クラウド計画]
+ogImage: ""
+description: 自宅とクラウドのwireguardの設定方法を書いています
+canonicalURL: https://example.org/my-article-was-already-posted-here
+---
+
+# 目次
+- [概要](#概要)
+- [インフラ構成](#インフラ構成)
+- [wireguardのセットアップ](#wireguardのセットアップ)
+    - [VM(gateway)](#vm側設定)
+    - [自宅control-planeノード](#自宅側設定)
+- [gatewayからcontrol-planeに通信を流す](#gatewayからcontrol-planeに通信を流す)
+
+
+# 概要
+自宅はマンション回線であり、グローバルIPを持っていないため、自宅にサーバーを持っても外部に公開できない。
+
+そこで、外部公開をするためにGCPのVMを借りて、VMへのアクセスをルーティングしVPN経由で通信を受け取れるようにするようにした。
+
+## この記事のゴール
+GCPで立てたインスタンスへの特定のポート(80, 443, 25565)の通信を自宅サーバーにルーティングできる状態
+
+
+# インフラ構成
+- ゲートウェイ用クラウド1(Debian 11 (bullseye))
+  - GCP vm instance 8$/month
+- 自宅サーバー3台(いずれもubuntu22.04)
+    - worker用
+        - <a target="_blank" href="https://www.amazon.co.jp/dp/B0BYNM95ZJ?psc=1&amp;ref=ppx_pop_dt_b_product_details&_encoding=UTF8&tag=tosukui-22&linkCode=ur2&linkId=6a2fc535854cf2c3d23f8fb3452e8e5b&camp=247&creative=1211">Beelink Mini PC、AMD Ryzen7 5800H nvme 500GB 16GB RAM</a> x 2
+
+    - control-plane用
+        - <a target="_blank" href="https://amzn.to/3KxxyTl">NIPOGI Intel N95 mini pc</a> x 1
+            - アフィリンクを貼った手前だが以下の理由であまりお勧めしない
+            - 有線接続系のドライバのセットアップで苦労する
+            - 結構青光りするので夜寝る時に気になるかも
+
+
+
+# wireguardのセットアップ
+## VM側設定
+### wireguardのインストール
+```bash
+sudo su -  # sudo はだるいのでrootになっておく
+apt update
+apt install wireguard
+```
+### 鍵の用意
+```
+wg genkey | sudo tee /etc/wireguard/server.key
+sudo chmod 600 /etc/wireguard/server.key
+sudo cat /etc/wireguard/server.key | wg pubkey | sudo tee /etc/wireguard/server.pub
+sudo chmod 600 /etc/wireguard/server.pub
+```
+
+### Wireguardのコンフィグのため、ネットワークインターフェースを確認しておく
+
+`ip a`が以下の結果であれば、`ens4`がネットワークインターフェースとなる。
+
+GCPでは割り当てられたグローバルIPからさらにルーティングされて`10.x.x.x`にパケットが送られてくるようになっている(と思っている).
+```bash
+$ ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+~~~
+2: ens4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1460 qdisc mq state UP group default qlen 1000
+    link/ether 42:01:0a:92:00:02 brd ff:ff:ff:ff:ff:ff
+    altname enp0s4
+    inet 10.x.x.x/32 brd 10.146.0.2 scope global dynamic ens4
+       valid_lft 3545sec preferred_lft 3545sec
+    inet6 fe80::4001:aff:fe92:2/64 scope link
+       valid_lft forever preferred_lft forever
+```
+
+### wireguardのconfigを編集する
+
+コンフィグファイルは`/etc/wireguard/wg0.conf`
+
+`wg0`の部分は自分の好きなインターフェース名にして良い。
+
+iptablesについては、Wireguardのネットワークインターフェスから`ens4`へ抜けていく通信と、その逆の通信を許可する設定.
+
+PostUpはwireguardを起動する時に実行するもので、PostDownはWireguardを落とす時に実行するもの。
+
+```conf:/etc/wireguard/wg0.conf
+[Interface]
+PrivateKey = (サーバーの秘密鍵)
+Address = 10.0.0.1
+ListenPort = (利用するポート)
+PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o ens4 -j MASQUERADE
+PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o `ens4` -j MASQUERADE
+[Peer]
+PublicKey = （クライアントの公開鍵）
+AllowedIPs = 10.0.0.2/32
+```
+
+パケットのフォーワーディングを許可しておく
+
+`/etc/sysctl.conf`を以下の通りに変更
+
+```diff :/etc/sysctl.conf
+- # net.ipv4.ip_forward=1
++ net.ipv4.ip_forward=1
+```
+以下で適用
+```
+sysctl -p
+```
+
+systemd管理にして再起動時なども自動で起動するように
+```
+sudo systemctl enable wg-quick@wg0
+sudo systemctl start wg-quick@wg0
+```
+
+
+## 自宅側設定
+control-planeだけ設定する
+### wireguardインストール
+```
+apt install wireguard
+```
+### 鍵の準備
+```
+wg genkey | sudo tee /etc/wireguard/client.key
+sudo chmod 600 /etc/wireguard/client.key
+sudo cat /etc/wireguard/client.key | wg pubkey | sudo tee /etc/wireguard/client.pub
+sudo chmod 600 /etc/wireguard/client.pub
+```
+
+### コンフィグファイル
+以下の設定だとAllowedIPsが0.0.0.0なので、LAN内の環境でなければ全ての通信がwireguard経由で行われるようになる。
+
+この後設定するiptablesによるgatewayからのルーティングには好都合なのでこの設定にした。
+
+```conf:/etc/wireguard/wg0.conf
+[Interface]
+PrivateKey = (クライアントの秘密鍵)
+Address = 10.0.0.2 (クライアントのIPアドレス)
+
+[Peer]
+PublicKey = (サーバーの公開鍵)
+EndPoint = (サーバーのIPアドレス(グローバルな方)):(ポート)
+AllowedIPs = 0.0.0.0/0,::/0
+PersistentKeepAlive = 30
+```
+
+なお、10.0.0.0/24だけをwireguard経由にしたい場合、以下のようにすれば良い。
+```
+AllowedIPs = 10.0.0.0/24
+```
+また、以下のサイトで特定のIPレンジをブラックリスト方式でAllowedIPsから外す設定ができるようだ（自分は失敗したので使ってない）
+https://www.procustodibus.com/blog/2021/03/wireguard-allowedips-calculator/
+
+### systemd管理にして再起動時なども自動で起動するように
+```
+sudo systemctl enable wg-quick@wg0
+sudo systemctl start wg-quick@wg0
+```
+
+# gatewayからcontrol-planeに通信を流す
+さらに、gatewayに来た通信をcontrol-planeに流したいので、iptablesを使ってそれを実現する。
+
+vm(gateway)のみ設定を行う
+
+## iptablesの設定
+### 設定の永続化の準備
+Debian 11特有かは全く検証していないが、iptablesをまず永続化させる必要があったため、以下のパッケージを入れる
+```
+apt install iptables-persistent
+```
+すると、以下のように永続化されたコンフィグが生成される
+```
+$ ls /etc/iptables
+/etc/iptables/rules.v4
+/etc/iptables/rules.v6
+```
+
+### iptablesのコンフィグ
+nat項目に以下の設定を追加。`ens4`は各々のグローバルに面したネットワークインターフェースに書き換える。
+
+`10.0.0.2`は自宅サーバーへのip addressとなっている。
+```diff
+# Generated by iptables-save v1.8.7 on Sat Jul 15 10:24:33 2023
+*filter
+~~~
+*nat
+~~~
++ -A PREROUTING  -p tcp -i ens4 --dport 80 -j DNAT --to-destination 10.0.0.2:80
++ -A PREROUTING  -p tcp -i ens4 --dport 443 -j DNAT --to-destination 10.0.0.2:443
++ -A PREROUTING  -p udp -i ens4 --dport 25565 -j DNAT --to-destination 10.0.0.2:25565
++ -A PREROUTING  -p tcp -i ens4 --dport 25565 -j DNAT --to-destination 10.0.0.2:25565
+
+COMMIT
+```
+
+あとは適当に自宅サーバーでnginxを立てて、80, 443, 25565をlistenしておき、外部からgatewayのIPを叩くとルーティングされるはず。
+
+
+
+
+
+
+# 参考文献
+- wireguard disallowed ips:
+- wireguardの設定: https://qiita.com/monakaJP/items/032ccba08331b172853c
+- iptables-persistent: https://iwashi.co/2015/01/16/ubuntu-iptables-persistent
+

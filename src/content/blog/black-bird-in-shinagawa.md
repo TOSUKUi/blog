@@ -1,5 +1,5 @@
 ---
-title: aaaa
+title: 品川の黒い羽
 author: amemiya
 pubDatetime: 2023-08-10T05:17:19Z
 postSlug: black-bird-in-shinagawa

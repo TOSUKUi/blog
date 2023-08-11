@@ -1,5 +1,5 @@
 ---
-title: 品川の黒い羽根
+title: aaaa
 author: amemiya
 pubDatetime: 2023-08-10T05:17:19Z
 postSlug: black-bird-in-shinagawa
@@ -10,7 +10,7 @@ tags:
   - example
   - tags
 ogImage: ""
-description: 品川の黒い羽根
+description: aaa
 canonicalURL: https://example.org/my-article-was-already-posted-here
 ---
 

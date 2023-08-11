@@ -1,7 +1,7 @@
 ---
 title: 自宅とクラウド間Wireguardの設定方法
 author: amemiya
-pubDatetime: 2023-08-10T05:17:19Z
+pubDatetime: 2023-08-11T19:55:19Z
 postSlug: wireguard-between-home-and-cloud
 featured: true
 draft: false

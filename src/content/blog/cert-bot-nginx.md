@@ -1,7 +1,7 @@
 ---
 title: nginxでletsencryptを使う(gcloud dnsのdns-1-challenge)
 author: amemiya
-pubDatetime: 2023-08-20T12:09:04Z
+pubDatetime: 2023-08-25T13:50:04Z
 postSlug: nginx-letsencrypt
 featured: true
 draft: false

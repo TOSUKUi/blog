@@ -10,8 +10,37 @@ ogImage: ""
 description: kubernetesのセットアップ方法を書いています。使っている技術スタック istio metallb calico
 canonicalURL: https://blog.tosukui.xyz/posts/kubernetes-setup
 ---
+
+- [kubernetesのセットアップ](#kubernetesのセットアップ)
+  - [インフラ構成](#インフラ構成)
+    - [ハードウェア](#ハードウェア)
+    - [ネットワーク構成](#ネットワーク構成)
+  - [hostsの設定](#hostsの設定)
+  - [ファイアウォールの設定](#ファイアウォールの設定)
+  - [ネットワークモジュール設定](#ネットワークモジュール設定)
+  - [スワップ無効化](#スワップ無効化)
+  - [containerdインストール](#containerdインストール)
+    - [Systemd cgroupドライバを有効化](#systemd-cgroupドライバを有効化)
+  - [kubeadmのインストール](#kubeadmのインストール)
+  - [クラスターの初期化](#クラスターの初期化)
+  - [他のワーカーノードを参加させる](#他のワーカーノードを参加させる)
+  - [ネットワーク環境の構築](#ネットワーク環境の構築)
+  - [calicoのインストール](#calicoのインストール)
+    - [まずtigera-operatorをインストール](#まずtigera-operatorをインストール)
+    - [次にcalicoをインストールするための設定ファイルをダウンロードする](#次にcalicoをインストールするための設定ファイルをダウンロードする)
+    - [クラスタに適用](#クラスタに適用)
+    - [確認する](#確認する)
+  - [MetalLB](#metallb)
+    - [インストール](#インストール)
+    - [中身をいじる](#中身をいじる)
+  - [Istioのインストール](#istioのインストール)
+    - [istioctlのインストール](#istioctlのインストール)
+    - [istioのクラスタへのインストール](#istioのクラスタへのインストール)
+
+
 # kubernetesのセットアップ
-# インフラ構成
+## インフラ構成
+### ハードウェア
 - ゲートウェイ用クラウド1(Debian 11 (bullseye))
   - GCP vm instance 8$/month
 
@@ -27,7 +56,7 @@ canonicalURL: https://blog.tosukui.xyz/posts/kubernetes-setup
             - 有線接続系のドライバのセットアップで苦労する
             - 結構青光りするので夜寝る時に気になるかも
 
-## ネットワーク構成
+### ネットワーク構成
 - ゲートウェイ用クラウド -> worker1へ10.0.0.3でwireguard接続
 - クラスタは3台構成
   - control-plane1

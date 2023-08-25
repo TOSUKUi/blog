@@ -16,27 +16,28 @@ canonicalURL: https://blog.tosukui.xyz/posts/kubernetes-setup
   - [インフラ構成](#インフラ構成)
     - [ハードウェア](#ハードウェア)
     - [ネットワーク構成](#ネットワーク構成)
-  - [hostsの設定](#hostsの設定)
+  - [ホストOSの基本設定](#ホストosの基本設定)
+    - [hostsの設定](#hostsの設定)
   - [ファイアウォールの設定](#ファイアウォールの設定)
   - [ネットワークモジュール設定](#ネットワークモジュール設定)
-  - [スワップ無効化](#スワップ無効化)
-  - [containerdインストール](#containerdインストール)
-    - [Systemd cgroupドライバを有効化](#systemd-cgroupドライバを有効化)
-  - [kubeadmのインストール](#kubeadmのインストール)
-  - [クラスターの初期化](#クラスターの初期化)
-  - [他のワーカーノードを参加させる](#他のワーカーノードを参加させる)
+    - [スワップ無効化](#スワップ無効化)
+    - [containerdインストール](#containerdインストール)
+      - [Systemd cgroupドライバを有効化](#systemd-cgroupドライバを有効化)
+    - [kubeadmのインストール](#kubeadmのインストール)
+    - [クラスターの初期化](#クラスターの初期化)
+    - [他のワーカーノードを参加させる](#他のワーカーノードを参加させる)
   - [ネットワーク環境の構築](#ネットワーク環境の構築)
-  - [calicoのインストール](#calicoのインストール)
-    - [まずtigera-operatorをインストール](#まずtigera-operatorをインストール)
-    - [次にcalicoをインストールするための設定ファイルをダウンロードする](#次にcalicoをインストールするための設定ファイルをダウンロードする)
-    - [クラスタに適用](#クラスタに適用)
-    - [確認する](#確認する)
-  - [MetalLB](#metallb)
-    - [インストール](#インストール)
-    - [中身をいじる](#中身をいじる)
-  - [Istioのインストール](#istioのインストール)
-    - [istioctlのインストール](#istioctlのインストール)
-    - [istioのクラスタへのインストール](#istioのクラスタへのインストール)
+    - [calicoのインストール](#calicoのインストール)
+      - [まずtigera-operatorをインストール](#まずtigera-operatorをインストール)
+      - [次にcalicoをインストールするための設定ファイルをダウンロードする](#次にcalicoをインストールするための設定ファイルをダウンロードする)
+      - [クラスタに適用](#クラスタに適用)
+      - [確認する](#確認する)
+    - [MetalLB](#metallb)
+      - [インストール](#インストール)
+      - [公開するIPに応じて中身を編集](#公開するipに応じて中身を編集)
+    - [Istioのインストール](#istioのインストール)
+      - [istioctlのインストール](#istioctlのインストール)
+      - [istioのクラスタへのインストール](#istioのクラスタへのインストール)
 
 
 
@@ -68,8 +69,8 @@ canonicalURL: https://blog.tosukui.xyz/posts/kubernetes-setup
   - worker2
     - 192.168.5.11 enp1s0 LAN
 
-
-## hostsの設定
+## ホストOSの基本設定
+### hostsの設定
 各ノードで設定しておく
 ```sh
 192.168.5.12 control-plane1 # コントロールプレーン
@@ -106,7 +107,7 @@ EOF
 ```sh
 sysctl --system
 ```
-## スワップ無効化
+### スワップ無効化
 ```sh
 sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 ```
@@ -122,7 +123,7 @@ free -m #確認
 https://qiita.com/zembutsu/items/2d8a7f5caa4885d08591
 
 
-## containerdインストール
+### containerdインストール
 aptで入れるのが丸い
 ```sh
 apt install ca-certificates curl gnupg
@@ -145,7 +146,7 @@ apt install containerd.io
 ```
 参考: https://docs.docker.com/engine/install/ubuntu/
 
-### Systemd cgroupドライバを有効化
+#### Systemd cgroupドライバを有効化
 
 ubuntu 22.04ではcontainerdのランタイムでsystemd cgroupドライバを有効化することを推奨されている
 
@@ -178,7 +179,7 @@ systemctl start containerd
 ```sh
 systemctl status containerd
 ```
-## kubeadmのインストール
+### kubeadmのインストール
 ```sh
 apt install apt-transport-https ca-certificates curl -y
 curl -fsSL https://dl.k8s.io/apt/doc/apt-key.gpg | gpg --dearmor -o /etc/apt/keyrings/kubernetes-archive-keyring.gpg
@@ -191,7 +192,7 @@ apt install -y kubelet kubeadm kubectl
 apt-mark hold kubelet kubeadm kubectl
 ```
 
-## クラスターの初期化
+### クラスターの初期化
 
 kubeadm initコマンドを利用し、control-plane1上でkubernetesクラスタを初期化する
 ```sh
@@ -207,7 +208,7 @@ kubeadm join 192.168.5.12:6443 --token <token> \
         --discovery-token-ca-cert-hash sha256:<hash>
 ```
 
-## 他のワーカーノードを参加させる
+### 他のワーカーノードを参加させる
 
 worker1, worker2ノードで実行する。
 ```sh
@@ -229,14 +230,14 @@ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
-## calicoのインストール
+### calicoのインストール
 ここからはどこでもいいのでkubectlが叩けるところで行う。
-### まずtigera-operatorをインストール
+#### まずtigera-operatorをインストール
 ```sh
 kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml
 ```
 
-### 次にcalicoをインストールするための設定ファイルをダウンロードする
+#### 次にcalicoをインストールするための設定ファイルをダウンロードする
 ```sh
 curl https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/custom-resources.yaml -O
 ```
@@ -280,12 +281,12 @@ spec: {}
 
 ```
 
-### クラスタに適用
+#### クラスタに適用
 ```sh
 kubectl create -f custom-resources.yaml
 ```
 
-### 確認する
+#### 確認する
 ```sh
 watch kubectl get pods -n calico-system
 ```
@@ -297,16 +298,16 @@ Policy	IPAM	CNI	Overlay	Routing	Datastore
 ```
 
 
-## MetalLB
-### インストール
+### MetalLB
+#### インストール
 このあとistioでメッシュ構築をしますが、そのLoadBalancerを外部公開するために必要
 
 ```sh
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.10/config/manifests/metallb-native.yaml
 ```
 
-### 中身をいじる
-いじり方としては、adressesをLoadBalancerで外部公開するためのIPレンジにする
+#### 公開するIPに応じて中身を編集
+adressesをLoadBalancerで外部公開するためのIPレンジにする
 
 自分の場合は10.0.0.3を外部との接続に使いたい
 
@@ -329,13 +330,13 @@ metadata:
 EOF
 ```
 
-## Istioのインストール
-### istioctlのインストール
+### Istioのインストール
+#### istioctlのインストール
 ```sh
 curl -L https://istio.io/downloadIstio | sh -
 ```
 
-### istioのクラスタへのインストール
+#### istioのクラスタへのインストール
 ```sh
 istioctl install --set profile=demo -y
 ✔ Istio core installed

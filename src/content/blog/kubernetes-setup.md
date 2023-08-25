@@ -1,7 +1,7 @@
 ---
 title: kubernetesのセットアップ
 author: amemiya
-pubDatetime: 2023-08-25T13:10:19Z
+pubDatetime: 2023-08-25T21:10:19+09
 postSlug: kubernetes-setup
 featured: true
 draft: false

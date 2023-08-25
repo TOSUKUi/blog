@@ -18,8 +18,8 @@ canonicalURL: https://blog.tosukui.xyz/posts/kubernetes-setup
     - [ネットワーク構成](#ネットワーク構成)
   - [ホストOSの基本設定](#ホストosの基本設定)
     - [hostsの設定](#hostsの設定)
-  - [ファイアウォールの設定](#ファイアウォールの設定)
-  - [ネットワークモジュール設定](#ネットワークモジュール設定)
+    - [ファイアウォールの設定](#ファイアウォールの設定)
+    - [ネットワークモジュール設定](#ネットワークモジュール設定)
     - [スワップ無効化](#スワップ無効化)
     - [containerdインストール](#containerdインストール)
       - [Systemd cgroupドライバを有効化](#systemd-cgroupドライバを有効化)
@@ -78,10 +78,10 @@ canonicalURL: https://blog.tosukui.xyz/posts/kubernetes-setup
 192.168.5.10 worker1
 ```
 
-## ファイアウォールの設定
+### ファイアウォールの設定
 性善説
 
-## ネットワークモジュール設定
+### ネットワークモジュール設定
 次のコマンドを実行して、カーネル モジュール \overlay\ および \br_netfilter\ を有効にします。
 
 ```sh

@@ -11,6 +11,7 @@ description: kubernetesのセットアップ方法を書いています。使っ
 canonicalURL: https://blog.tosukui.xyz/posts/kubernetes-setup
 ---
 
+# kubernetesのセットアップ
 - [kubernetesのセットアップ](#kubernetesのセットアップ)
   - [インフラ構成](#インフラ構成)
     - [ハードウェア](#ハードウェア)
@@ -38,7 +39,7 @@ canonicalURL: https://blog.tosukui.xyz/posts/kubernetes-setup
     - [istioのクラスタへのインストール](#istioのクラスタへのインストール)
 
 
-# kubernetesのセットアップ
+
 ## インフラ構成
 ### ハードウェア
 - ゲートウェイ用クラウド1(Debian 11 (bullseye))

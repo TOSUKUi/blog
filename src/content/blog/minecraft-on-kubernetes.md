@@ -11,24 +11,22 @@ description:  minecraftのkubernetes上でのセットアップ方k方法を書�
 canonicalURL: https://blog.tosukui.xyz/posts/minecraft-on-kubernetes
 ---
 
+# minecraftマニフェスト
+- https://github.com/TOSUKUi/kube-manifests/tree/main/minecraft
+
 # インフラ構成の概要
 - minecraftはtcp 25566で受け付ける
 - 1ノードで完結
-  - ノード構成
-    - OS: ubuntu22.04
-    - memory: 32GBメモリ
-    - cpu: 5800h
-  - ネットワーク構成
-    - pod cidr: `10.1.0.0/16`
-    - service cidr: `10.2.0.0/16`
-    - nodes cidr: `192.168.5.0/24`
+- ネットワーク構成
+  - pod cidr: `10.1.0.0/16`
+  - service cidr: `10.2.0.0/16`
+  - nodes cidr: `192.168.5.0/24`
 - /var/nfs/kube/minecraftをnfsとしてpersistent volume化
 - コンテナは以下のイメージを使う
   - https://hub.docker.com/r/itzg/minecraft-server
-- 答え早見
-  - https://github.com/TOSUKUi/kube-manifests/tree/main/minecraft
-- istioのインストールとかはこっちの記事
+- (もしやっていない場合)istioのインストールとかはこっちの記事
   - https://blog.tosukui.xyz/posts/kubernetes-setup/
+
 
 # nfsセットアップ
 ## nfs server clientのインストール
@@ -150,7 +148,7 @@ port 25566で受け付けたい。25565ではないのはなんとなくセキ�
 まずistioでport25566を受付可能な状態にするため、
 以下のファイルを作成
 
-UDPは開ける意味がほぼないので開けていない
+
 istio-extra-ports.yaml
 ```yaml
 apiVersion: install.istio.io/v1alpha1
@@ -192,7 +190,9 @@ spec:
                 name: tcp-minecraft
                 protocol: TCP
 ```
+UDPは開ける意味がほぼないので開けていない
 
+istioctlで上の設定をインストールする
 ```bash
 istioctl install -f istio-extra-ports.yaml
 ```

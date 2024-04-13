@@ -55,7 +55,7 @@ canonicalURL: https://blog.tosukui.xyz/posts/kubernetes-setup
     - control-plane用
         - <a target="_blank" href="https://amzn.to/3KxxyTl">NIPOGI Intel N95 mini pc</a> x 1
             - アフィリンクを貼った手前だが以下の理由であまりお勧めしない
-            - 有線接続系のドライバのセットアップで苦労する
+            - 有線接続系のドライバがrealtek r8168なのだが、セットアップで苦労する
             - 結構青光りするので夜寝る時に気になるかも
 
 ### ネットワーク構成
@@ -182,8 +182,8 @@ systemctl status containerd
 ### kubeadmのインストール
 ```sh
 apt install apt-transport-https ca-certificates curl -y
-curl -fsSL https://dl.k8s.io/apt/doc/apt-key.gpg | gpg --dearmor -o /etc/apt/keyrings/kubernetes-archive-keyring.gpg
-echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
 ```
 kubernetesのパッケージ群をインストールし、バージョン固定
 ```sh

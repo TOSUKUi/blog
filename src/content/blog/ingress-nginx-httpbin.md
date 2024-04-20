@@ -28,7 +28,7 @@ https://blog.tosukui.xyz/posts/re-kubernetes-setup
 
 ## httpbinサービスのmanifest
 ### deployment
-```yaml:deployment.yaml
+```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -54,7 +54,7 @@ spec:
 ```
 
 ### ingress(ingress nginx用)
-```yaml:ingress.yaml
+```yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -75,7 +75,7 @@ spec:
 ```
 
 ### service account
-```yaml:service-account.yaml
+```yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -83,7 +83,7 @@ metadata:
 ```
 
 ### service
-```yaml:service.yaml
+```yaml
 apiVersion: v1
 kind: Service
 metadata:

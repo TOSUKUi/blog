@@ -1,7 +1,7 @@
 ---
-title: kubernetesのセットアップ
+title: ingress-nginxでhttpbinサーバーを公開する
 author: amemiya
-pubDatetime: 2024-04-20T16:10:19+09
+pubDatetime: 2024-04-20T17:10:19+09
 postSlug: kubernetes-setup
 featured: true
 draft: false

@@ -2,7 +2,7 @@
 title: helmを使いながらのkubernetesのセットアップ
 author: amemiya
 pubDatetime: 2024-04-20T16:26:19+09
-postSlug: kubernetes-setup
+postSlug: re-kubernetes-setup
 featured: true
 draft: false
 tags: [自宅サーバー,VPN,Wireguard,自宅クラウド計画,istio,metallb,helm]

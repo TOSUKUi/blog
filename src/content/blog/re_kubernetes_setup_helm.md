@@ -44,8 +44,9 @@ canonicalURL: https://blog.tosukui.xyz/posts/re-kubernetes-setup
     - [他のワーカーノードを参加させる](#他のワーカーノードを参加させる-1)
   - [ネットワーク環境の構築](#ネットワーク環境の構築-1)
     - [MetalLB](#metallb)
-      - [インストール](#インストール)
-      - [公開するIPに応じてmetallb/values.ymlの中身を編集](#公開するipに応じてmetallbvaluesymlの中身を編集)
+      - [helm用にvaluesを作成](#helm用にvaluesを作成)
+      - [helmインストール](#helmインストール)
+      - [公開するIPに応じてmetallb/configrations.ymlの中身を編集](#公開するipに応じてmetallbconfigrationsymlの中身を編集)
     - [calicoのインストール](#calicoのインストール)
       - [helmのrepository add](#helmのrepository-add)
       - [calicoをインストールするための設定ファイルをダウンロード](#calicoをインストールするための設定ファイルをダウンロード)
@@ -298,8 +299,9 @@ canonicalURL: https://blog.tosukui.xyz/posts/kubernetes-setup
     - [他のワーカーノードを参加させる](#他のワーカーノードを参加させる-1)
   - [ネットワーク環境の構築](#ネットワーク環境の構築-1)
     - [MetalLB](#metallb)
-      - [インストール](#インストール)
-      - [公開するIPに応じてmetallb/values.ymlの中身を編集](#公開するipに応じてmetallbvaluesymlの中身を編集)
+      - [helm用にvaluesを作成](#helm用にvaluesを作成)
+      - [helmインストール](#helmインストール)
+      - [公開するIPに応じてmetallb/configrations.ymlの中身を編集](#公開するipに応じてmetallbconfigrationsymlの中身を編集)
     - [calicoのインストール](#calicoのインストール)
       - [helmのrepository add](#helmのrepository-add)
       - [calicoをインストールするための設定ファイルをダウンロード](#calicoをインストールするための設定ファイルをダウンロード)
@@ -501,21 +503,29 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
 ### MetalLB
-#### インストール
+#### helm用にvaluesを作成
+
 ingress-nginxによるLoadBalancerを外部公開するために必要
 
+frrではなくnativeモードでインストールしたいので`metallb/values.yml`を以下の通りに作成
+```yaml
+speaker:
+  frr:
+    enabled: false
+```
+
+#### helmインストール
 ```sh
 helm repo add metallb https://metallb.github.io/metallb
 helm install metallb metallb/metallb -f metallb/values.yml -n metallb-system
 ```
 
-#### 公開するIPに応じてmetallb/values.ymlの中身を編集
+#### 公開するIPに応じてmetallb/configrations.ymlの中身を編集
 adressesをLoadBalancerで外部公開するためのIPレンジにする
 
 自分の場合は10.0.0.3を外部との接続に使いたい
 
-```yaml:metallb-values
-kubectl apply -n metallb-system -f - <<EOF
+```yaml:configrations.yaml
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
@@ -531,6 +541,11 @@ metadata:
   name: default-advertisement
   namespace: metallb-system
 EOF
+```
+
+`metaldb/configrations.yaml`を適用
+```
+kubectl apply -f metallb/configrations.yml
 ```
 
 ### calicoのインストール

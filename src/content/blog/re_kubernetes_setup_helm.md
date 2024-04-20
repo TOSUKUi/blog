@@ -1,7 +1,7 @@
 ---
-title: kubernetesのセットアップ
+title: helmを使いながらのkubernetesのセットアップ
 author: amemiya
-pubDatetime: 2023-08-25T21:10:19+09
+pubDatetime: 2024-04-20T16:26:19+09
 postSlug: kubernetes-setup
 featured: true
 draft: false

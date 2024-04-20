@@ -2,7 +2,7 @@
 title: ingress-nginxでhttpbinサーバーを公開する
 author: amemiya
 pubDatetime: 2024-04-20T17:10:19+09
-postSlug: kubernetes-setup
+postSlug: ingress-nginx-httpbin
 featured: true
 draft: false
 tags: [自宅サーバー,VPN,Wireguard,自宅クラウド計画,istio,metallb,ingress-nginx,httpbin]

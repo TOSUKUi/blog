@@ -227,7 +227,17 @@ periodic {
 }
 ```
 
+
+
 これで一旦nomadのクラスタ作成チュートリアル終了
+
+## サンプルアプリケーションを止める
+```bash
+nomad job stop -purge pytechco-employee
+nomad job stop -purge pytechco-redis
+nomad job stop -purge pytechco-setup
+```
+
 
 
 

@@ -27,6 +27,11 @@ GMKTec Evo X2を購入したが、amdgpuのセットアップが初めてなの�
 AMDのGPUを使ってllama.cppを動かす！
 あと、NPUはlinuxで使えるのかというところについても最善を尽くす予定。
 
+なお、以下のサイトによるとvulkanが基本的に速いらしいが、
+ロングコンテキストになるとhip + rocwmmaが早くなるらしいぞ
+
+https://llm-tracker.info/_TOORG/Strix-Halo
+
 # GMKTEC Evo X2の外観
 
 
@@ -183,7 +188,12 @@ gfx1151
 
 ビルドは結構早い。
 
-16コア32スレッドは伊達じゃねえ
+また、`-DGGML_HIP_ROCWMMA_FATTN=ON`をビルド引数で渡すと、ROCWMMAとFlashAttentionk機能を有効化してくれる
+
+ROCWMMAはいい感じに演算を加速してくれるやつ
+
+
+16コア32スレッドは伊達じゃない。
 ```
 HIPCXX="$(hipconfig -l)/clang" HIP_PATH="$(hipconfig -R)" \
     cmake -S . -B build -DGGML_HIP=ON -DAMDGPU_TARGETS=gfx1151 -DCMAKE_BUILD_TYPE=Release \
@@ -278,11 +288,554 @@ llama-cliを動かして、動くか確かめる。
 なお、`GGML_CUDA_ENABLE_UNIFIED_MEMORY=1`を環境変数で渡すと、unified memoryを有効化してくれるらしい（ほんとか？）
 ```
 GGML_CUDA_ENABLE_UNIFIED_MEMORY=1  build/bin/llama-cli -ngl 29  -hf unsloth/Qwen3-0.6B-GGUF:Q8_0
+
+-> gfx1151がtensileで対応していないと言われ、動かない状態に
+
+
 ```
 
 
+うまくいかないので、rocmより早いと噂のvulkanを使う方向に舵を切る
+
+vulkanのインストール
+```
+wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-noble.list http://packages.lunarg.com/vulkan/lunarg-vulkan-noble.list
+sudo apt update
+sudo apt install vulkan-sdk
+```
+
+インストール確認
+```
+@amd-ai-worker1:~/work/llama.cpp$ vulkaninfo
+WARNING: [Loader Message] Code 0 : Layer VK_LAYER_MESA_device_select uses API version 1.3 which is older than the applica
+tion specified API version of 1.4. May cause issues.
+'DISPLAY' environment variable not set... skipping surface info
+==========
+VULKANINFO
+==========
+
+Vulkan Instance Version: 1.4.313
 
 
+Instance Extensions: count = 24
+===============================
+        VK_EXT_acquire_drm_display             : extension revision 1
+        VK_EXT_acquire_xlib_display            : extension revision 1
+        VK_EXT_debug_report                    : extension revision 10
+        VK_EXT_debug_utils                     : extension revision 2
+        VK_EXT_direct_mode_display             : extension revision 1
+        VK_EXT_display_surface_counter         : extension revision 1
+        VK_EXT_headless_surface                : extension revision 1
+        VK_EXT_surface_maintenance1            : extension revision 1
+        VK_EXT_swapchain_colorspace            : extension revision 4
+        VK_KHR_device_group_creation           : extension revision 1
+        VK_KHR_display                         : extension revision 23
+        VK_KHR_external_fence_capabilities     : extension revision 1
+        VK_KHR_external_memory_capabilities    : extension revision 1
+        VK_KHR_external_semaphore_capabilities : extension revision 1
+        VK_KHR_get_display_properties2         : extension revision 1
+        VK_KHR_get_physical_device_properties2 : extension revision 2
+        VK_KHR_get_surface_capabilities2       : extension revision 1
+        VK_KHR_portability_enumeration         : extension revision 1
+        VK_KHR_surface                         : extension revision 25
+        VK_KHR_surface_protected_capabilities  : extension revision 1
+        VK_KHR_wayland_surface                 : extension revision 6
+        VK_KHR_xcb_surface                     : extension revision 6
+        VK_KHR_xlib_surface                    : extension revision 6
+        VK_LUNARG_direct_driver_loading        : extension revision 1
+
+Layers: count = 12
+==================
+VK_LAYER_INTEL_nullhw (INTEL NULL HW) Vulkan version 1.1.73, layer version 1:
+        Layer Extensions: count = 0
+        Devices: count = 2
+                GPU id = 0 (AMD Radeon Graphics (RADV GFX1151))
+                Layer-Device Extensions: count = 0
+
+                GPU id = 1 (llvmpipe (LLVM 19.1.1, 256 bits))
+                Layer-Device Extensions: count = 0
+```
+
+
+認識しているので問題なく入っていると仮定
+
+
+llama.cppのビルド
+hipのビルドと比較して時間がかかる
+
+```bash
+amd-ai-worker1:~/work/llama.cpp-vulkan$ cmake -B build -DGGML_VULKAN=1 \
+&& cmake --build build --config Release
+
+...
+
+[ 94%] Built target llama-llava-cli
+[ 95%] Built target llama-gemma3-cli
+[ 96%] Built target llama-minicpmv-cli
+[ 97%] Built target llama-qwen2vl-cli
+[ 98%] Built target llama-mtmd-cli
+[ 99%] Built target llama-cvector-generator
+[100%] Built target llama-export-lora
+```
+
+無事GPUメモリに乗った
+
+unified memoryはちゃんと使えるのかが不明
+
+```
+amd-ai-worker1:~/work/llama.cpp-vulkan$ build/bin/llama-cli -ngl 29  -hf unsloth/Qwen3-0.6B-GGUF:Q8_0
+ggml_vulkan: Found 1 Vulkan devices:
+ggml_vulkan: 0 = AMD Radeon Graphics (RADV GFX1151) (radv) | uma: 1 | fp16: 1 | warp size: 64 | shared memory: 65536 | int dot: 1 | matrix cores: KHR_coopmat
+curl_perform_with_retry: HEAD https://huggingface.co/unsloth/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q8_0.gguf (attempt 1 of 1)...
+common_download_file_single: using cached file: /home/amemiya/.cache/llama.cpp/unsloth_Qwen3-0.6B-GGUF_Qwen3-0.6B-Q8_0.gguf
+build: 5398 (c531edfa) with cc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0 for x86_64-linux-gnu
+main: llama backend init
+main: load the model and apply lora adapter, if any
+llama_model_load_from_file_impl: using device Vulkan0 (AMD Radeon Graphics (RADV GFX1151)) - 65002 MiB free
+llama_model_loader: loaded meta data with 32 key-value pairs and 310 tensors from /home/amemiya/.cache/llama.cpp/unsloth_Qwen3-0.6B-GGUF_Qwen3-0.6B-Q8_0.gguf (version GGUF V3 (latest))
+llama_model_loader: Dumping metadata keys/values. Note: KV overrides do not apply in this output.
+llama_model_loader: - kv   0:                       general.architecture str              = qwen3
+llama_model_loader: - kv   1:                               general.type str              = model
+llama_model_loader: - kv   2:                               general.name str              = Qwen3-0.6B
+llama_model_loader: - kv   3:                           general.basename str              = Qwen3-0.6B
+llama_model_loader: - kv   4:                       general.quantized_by str              = Unsloth
+llama_model_loader: - kv   5:                         general.size_label str              = 0.6B
+llama_model_loader: - kv   6:                           general.repo_url str              = https://huggingface.co/unsloth
+llama_model_loader: - kv   7:                          qwen3.block_count u32              = 28
+llama_model_loader: - kv   8:                       qwen3.context_length u32              = 40960
+llama_model_loader: - kv   9:                     qwen3.embedding_length u32              = 1024
+llama_model_loader: - kv  10:                  qwen3.feed_forward_length u32              = 3072
+llama_model_loader: - kv  11:                 qwen3.attention.head_count u32              = 16
+llama_model_loader: - kv  12:              qwen3.attention.head_count_kv u32              = 8
+llama_model_loader: - kv  13:                       qwen3.rope.freq_base f32              = 1000000.000000
+llama_model_loader: - kv  14:     qwen3.attention.layer_norm_rms_epsilon f32              = 0.000001
+llama_model_loader: - kv  15:                 qwen3.attention.key_length u32              = 128
+llama_model_loader: - kv  16:               qwen3.attention.value_length u32              = 128
+llama_model_loader: - kv  17:                       tokenizer.ggml.model str              = gpt2
+llama_model_loader: - kv  18:                         tokenizer.ggml.pre str              = qwen2
+llama_model_loader: - kv  19:                      tokenizer.ggml.tokens arr[str,151936]  = ["!", "\"", "#", "$", "%", "&", "'", ...
+llama_model_loader: - kv  20:                  tokenizer.ggml.token_type arr[i32,151936]  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ...
+llama_model_loader: - kv  21:                      tokenizer.ggml.merges arr[str,151387]  = ["Ġ Ġ", "ĠĠ ĠĠ", "i n", "Ġ t",...
+llama_model_loader: - kv  22:                tokenizer.ggml.eos_token_id u32              = 151645
+llama_model_loader: - kv  23:            tokenizer.ggml.padding_token_id u32              = 151654
+llama_model_loader: - kv  24:               tokenizer.ggml.add_bos_token bool             = false
+llama_model_loader: - kv  25:                    tokenizer.chat_template str              = {%- if tools %}\n    {{- '<|im_start|>...
+llama_model_loader: - kv  26:               general.quantization_version u32              = 2
+llama_model_loader: - kv  27:                          general.file_type u32              = 7
+llama_model_loader: - kv  28:                      quantize.imatrix.file str              = Qwen3-0.6B-GGUF/imatrix_unsloth.dat
+llama_model_loader: - kv  29:                   quantize.imatrix.dataset str              = unsloth_calibration_Qwen3-0.6B.txt
+llama_model_loader: - kv  30:             quantize.imatrix.entries_count i32              = 196
+llama_model_loader: - kv  31:              quantize.imatrix.chunks_count i32              = 685
+llama_model_loader: - type  f32:  113 tensors
+llama_model_loader: - type q8_0:  197 tensors
+print_info: file format = GGUF V3 (latest)
+print_info: file type   = Q8_0
+print_info: file size   = 604.15 MiB (8.50 BPW)
+load: special tokens cache size = 26
+load: token to piece cache size = 0.9311 MB
+print_info: arch             = qwen3
+print_info: vocab_only       = 0
+print_info: n_ctx_train      = 40960
+print_info: n_embd           = 1024
+print_info: n_layer          = 28
+print_info: n_head           = 16
+print_info: n_head_kv        = 8
+print_info: n_rot            = 128
+print_info: n_swa            = 0
+print_info: n_swa_pattern    = 1
+print_info: n_embd_head_k    = 128
+print_info: n_embd_head_v    = 128
+print_info: n_gqa            = 2
+print_info: n_embd_k_gqa     = 1024
+print_info: n_embd_v_gqa     = 1024
+print_info: f_norm_eps       = 0.0e+00
+print_info: f_norm_rms_eps   = 1.0e-06
+print_info: f_clamp_kqv      = 0.0e+00
+print_info: f_max_alibi_bias = 0.0e+00
+print_info: f_logit_scale    = 0.0e+00
+print_info: f_attn_scale     = 0.0e+00
+print_info: n_ff             = 3072
+print_info: n_expert         = 0
+print_info: n_expert_used    = 0
+print_info: causal attn      = 1
+print_info: pooling type     = 0
+print_info: rope type        = 2
+print_info: rope scaling     = linear
+print_info: freq_base_train  = 1000000.0
+print_info: freq_scale_train = 1
+print_info: n_ctx_orig_yarn  = 40960
+print_info: rope_finetuned   = unknown
+print_info: ssm_d_conv       = 0
+print_info: ssm_d_inner      = 0
+print_info: ssm_d_state      = 0
+print_info: ssm_dt_rank      = 0
+print_info: ssm_dt_b_c_rms   = 0
+print_info: model type       = 0.6B
+print_info: model params     = 596.05 M
+print_info: general.name     = Qwen3-0.6B
+print_info: vocab type       = BPE
+print_info: n_vocab          = 151936
+print_info: n_merges         = 151387
+print_info: BOS token        = 11 ','
+print_info: EOS token        = 151645 '<|im_end|>'
+print_info: EOT token        = 151645 '<|im_end|>'
+print_info: PAD token        = 151654 '<|vision_pad|>'
+print_info: LF token         = 198 'Ċ'
+print_info: FIM PRE token    = 151659 '<|fim_prefix|>'
+print_info: FIM SUF token    = 151661 '<|fim_suffix|>'
+print_info: FIM MID token    = 151660 '<|fim_middle|>'
+print_info: FIM PAD token    = 151662 '<|fim_pad|>'
+print_info: FIM REP token    = 151663 '<|repo_name|>'
+print_info: FIM SEP token    = 151664 '<|file_sep|>'
+print_info: EOG token        = 151643 '<|endoftext|>'
+print_info: EOG token        = 151645 '<|im_end|>'
+print_info: EOG token        = 151662 '<|fim_pad|>'
+print_info: EOG token        = 151663 '<|repo_name|>'
+print_info: EOG token        = 151664 '<|file_sep|>'
+print_info: max token length = 256
+load_tensors: loading model tensors, this can take a while... (mmap = true)
+load_tensors: offloading 28 repeating layers to GPU
+load_tensors: offloading output layer to GPU
+load_tensors: offloaded 29/29 layers to GPU
+load_tensors:      Vulkan0 model buffer size =   604.15 MiB
+load_tensors:   CPU_Mapped model buffer size =   157.65 MiB
+.............................................................
+llama_context: constructing llama_context
+llama_context: n_seq_max     = 1
+llama_context: n_ctx         = 4096
+llama_context: n_ctx_per_seq = 4096
+llama_context: n_batch       = 2048
+llama_context: n_ubatch      = 512
+llama_context: causal_attn   = 1
+llama_context: flash_attn    = 0
+llama_context: freq_base     = 1000000.0
+llama_context: freq_scale    = 1
+llama_context: n_ctx_per_seq (4096) < n_ctx_train (40960) -- the full capacity of the model will not be utilized
+llama_context: Vulkan_Host  output buffer size =     0.58 MiB
+llama_kv_cache_unified: kv_size = 4096, type_k = 'f16', type_v = 'f16', n_layer = 28, can_shift = 1, padding = 32
+llama_kv_cache_unified:    Vulkan0 KV buffer size =   448.00 MiB
+llama_kv_cache_unified: KV self size  =  448.00 MiB, K (f16):  224.00 MiB, V (f16):  224.00 MiB
+llama_context:    Vulkan0 compute buffer size =   298.75 MiB
+llama_context: Vulkan_Host compute buffer size =    10.01 MiB
+llama_context: graph nodes  = 1070
+llama_context: graph splits = 2
+common_init_from_params: setting dry_penalty_last_n to ctx_size = 4096
+common_init_from_params: warming up the model with an empty run - please wait ... (--no-warmup to disable)
+main: llama threadpool init, n_threads = 16
+main: chat template is available, enabling conversation mode (disable it with -no-cnv)
+main: chat template example:
+<|im_start|>system
+You are a helpful assistant<|im_end|>
+<|im_start|>user
+Hello<|im_end|>
+<|im_start|>assistant
+Hi there<|im_end|>
+<|im_start|>user
+How are you?<|im_end|>
+<|im_start|>assistant
+
+
+system_info: n_threads = 16 (n_threads_batch = 16) / 32 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX_VNNI = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | AVX512 = 1 | AVX512_VBMI = 1 | AVX512_VNNI = 1 | AVX512_BF16 = 1 | LLAMAFILE = 1 | OPENMP = 1 | AARCH64_REPACK = 1 |
+
+main: interactive mode on.
+sampler seed: 2439338068
+sampler params:
+        repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+        dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 4096
+        top_k = 40, top_p = 0.950, min_p = 0.050, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.800
+        mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000
+sampler chain: logits -> logit-bias -> penalties -> dry -> top-n-sigma -> top-k -> typical -> top-p -> min-p -> xtc -> temp-ext -> dist
+generate: n_ctx = 4096, n_batch = 2048, n_predict = -1, n_keep = 0
+
+== Running in interactive mode. ==
+ - Press Ctrl+C to interject at any time.
+ - Press Return to return control to the AI.
+ - To return control without starting a new line, end your input with '/'.
+ - If you want to submit another line, end your input with '\'.
+ - Not using system message. To change it, set a different value via -sys PROMPT
+
+
+> こんにちは
+<think>
+Okay, the user said "こんにちは" which is Japanese. I need to respond appropriately. Since I'm a language model, I should acknowledge their greeting. Maybe say "こんにちは" and offer help. Keep it friendly and open-ended so they feel comfortable. Let me check if there's any cultural nuances I should consider, but I think a simple response should suffice.
+</think>
+
+こんにちは！何かご質問やご案内できますか？😊
+
+>
+```
+
+
+0.6Bなのでかなり速いスピードで動いたが、これは当然である。
+
+
+Qwen3-30-a3bを走らせてみる
+https://huggingface.co/unsloth/Qwen3-30B-A3B-128K-GGUF
+
+Unslothの量子化モデルの、Q8_K_XLを動かしてみる。RTX4090ではできない領域なので動かしてみたかったというのが大きい。
+
+
+モデルのダウンロード
+```bash
+amd-ai-worker1:/mnt/data/models/llama.cpp/common$ wget https://huggingface.co/unsloth/Qwen3-30B-A3B-128K-GGUF/resolve/main/Qwen3-30B-A3B-128K-UD-Q8_K_XL.gguf
+
+--2025-05-17 00:54:35--  https://huggingface.co/unsloth/Qwen3-30B-A3B-128K-GGUF/resolve/main/Qwen3-30B-A3B-128K-UD-Q8_K_XL.gguf
+Resolving huggingface.co (huggingface.co)... 3.164.110.77, 3.164.110.128, 3.164.110.3, ...
+Connecting to huggingface.co (huggingface.co)|3.164.110.77|:443... connected.
+HTTP request sent, awaiting response... 302 Found
+Location: https://cas-bridge.xethub.hf.co/xet-bridge-us/68108d52210d0fd5a1b04b87/39a336c9bbdac821d82a5b38c14347cd7a79d010d54a923f24293f75e2771c1c?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=cas%2F20250516%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250516T155435Z&X-Amz-Expires=3600&X-Amz-Signature=ed690ca6f01299f2c675abb7b3dc94230be397112b972fff48adaf4ef3891e9b&X-Amz-SignedHeaders=host&X-Xet-Cas-Uid=public&response-content-disposition=inline%3B+filename*%3DUTF-8%27%27Qwen3-30B-A3B-128K-UD-Q8_K_XL.gguf%3B+filename%3D%22Qwen3-30B-A3B-128K-UD-Q8_K_XL.gguf%22%3B&x-id=GetObject&Expires=1747414475&Policy=eyJTdGF0ZW1lbnQiOlt7IkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTc0NzQxNDQ3NX19LCJSZXNvdXJjZSI6Imh0dHBzOi8vY2FzLWJyaWRnZS54ZXRodWIuaGYuY28veGV0LWJyaWRnZS11cy82ODEwOGQ1MjIxMGQwZmQ1YTFiMDRiODcvMzlhMzM2YzliYmRhYzgyMWQ4MmE1YjM4YzE0MzQ3Y2Q3YTc5ZDAxMGQ1NGE5MjNmMjQyOTNmNzVlMjc3MWMxYyoifV19&Signature=EnlyjV9Q7Cj4sEWvfBM%7ETJ0rmKU3xwBJPY7ZhoaIhTNLND17x%7EEr16iOCpbOs6kl5j6HjOguT%7EeQMN-KOPyYFktONDhd4nijKujF-PyJ2EheHB85ctTSVXTlo3E9Xg9oGTXnLLVsuRoAEVO0kRCGhjlUzJQji%7El33ey%7Eu8-gTlq14awGL4XTPRQq40xS80NzFzKmWcKP5N85Mk2upp07MEWoEs56j4IEuoomiqOqtDmt-%7EUjD4ODF8RbrzV0O-KEEggMMPnqobXlrZ6Dg%7ELvPQ7pcpZjgaPM%7EuIykHIOkw0yhj-y5x%7EHW8dag6xXdiQWMSOAhUb-JmOrfD-1Ul8f5A__&Key-Pair-Id=K2L8F4GPSG1IFC [following]
+--2025-05-17 00:54:35--  https://cas-bridge.xethub.hf.co/xet-bridge-us/68108d52210d0fd5a1b04b87/39a336c9bbdac821d82a5b38c14347cd7a79d010d54a923f24293f75e2771c1c?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=cas%2F20250516%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250516T155435Z&X-Amz-Expires=3600&X-Amz-Signature=ed690ca6f01299f2c675abb7b3dc94230be397112b972fff48adaf4ef3891e9b&X-Amz-SignedHeaders=host&X-Xet-Cas-Uid=public&response-content-disposition=inline%3B+filename*%3DUTF-8%27%27Qwen3-30B-A3B-128K-UD-Q8_K_XL.gguf%3B+filename%3D%22Qwen3-30B-A3B-128K-UD-Q8_K_XL.gguf%22%3B&x-id=GetObject&Expires=1747414475&Policy=eyJTdGF0ZW1lbnQiOlt7IkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTc0NzQxNDQ3NX19LCJSZXNvdXJjZSI6Imh0dHBzOi8vY2FzLWJyaWRnZS54ZXRodWIuaGYuY28veGV0LWJyaWRnZS11cy82ODEwOGQ1MjIxMGQwZmQ1YTFiMDRiODcvMzlhMzM2YzliYmRhYzgyMWQ4MmE1YjM4YzE0MzQ3Y2Q3YTc5ZDAxMGQ1NGE5MjNmMjQyOTNmNzVlMjc3MWMxYyoifV19&Signature=EnlyjV9Q7Cj4sEWvfBM%7ETJ0rmKU3xwBJPY7ZhoaIhTNLND17x%7EEr16iOCpbOs6kl5j6HjOguT%7EeQMN-KOPyYFktONDhd4nijKujF-PyJ2EheHB85ctTSVXTlo3E9Xg9oGTXnLLVsuRoAEVO0kRCGhjlUzJQji%7El33ey%7Eu8-gTlq14awGL4XTPRQq40xS80NzFzKmWcKP5N85Mk2upp07MEWoEs56j4IEuoomiqOqtDmt-%7EUjD4ODF8RbrzV0O-KEEggMMPnqobXlrZ6Dg%7ELvPQ7pcpZjgaPM%7EuIykHIOkw0yhj-y5x%7EHW8dag6xXdiQWMSOAhUb-JmOrfD-1Ul8f5A__&Key-Pair-Id=K2L8F4GPSG1IFC
+Resolving cas-bridge.xethub.hf.co (cas-bridge.xethub.hf.co)... 3.164.110.47, 3.164.110.49, 3.164.110.22, ...
+Connecting to cas-bridge.xethub.hf.co (cas-bridge.xethub.hf.co)|3.164.110.47|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 35989945120 (34G)
+Saving to: ‘Qwen3-30B-A3B-128K-UD-Q8_K_XL.gguf’
+
+Qwen3-30B-A3B-128K-UD-Q8_K_XL.gguf        100%[==================================================================================================================================================================================>]  33.52G  32.5MB/s    in 20m 2s
+
+2025-05-17 01:14:38 (28.6 MB/s) - ‘Qwen3-30B-A3B-128K-UD-Q8_K_XL.gguf’ saved [35989945120/35989945120]
+
+```
+
+また、Qwen235B a22b のq3_k_sも乗った
+
+93/95レイヤーがGPU offloadできる限界
+
+```
+amd-ai-worker1:~/work/llama.cpp-vulkan$ build/bin/llama-cli -ngl 93 --model /mnt/data/models/llama.cpp/common/Qwen3-235B-A22B-Q3_K_S-00001-of-00003.gguf
+ggml_vulkan: Found 1 Vulkan devices:
+ggml_vulkan: 0 = AMD Radeon Graphics (RADV GFX1151) (radv) | uma: 1 | fp16: 1 | warp size: 64 | shared memory: 65536 | int dot: 1 | matrix cores: KHR_coopmat
+build: 5398 (c531edfa) with cc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0 for x86_64-linux-gnu
+main: llama backend init
+main: load the model and apply lora adapter, if any
+llama_model_load_from_file_impl: using device Vulkan0 (AMD Radeon Graphics (RADV GFX1151)) - 65002 MiB free
+llama_model_loader: additional 2 GGUFs metadata loaded.
+llama_model_loader: loaded meta data with 46 key-value pairs and 1131 tensors from /mnt/data/models/llama.cpp/common/Qwen3-235B-A22B-Q3_K_S-00001-of-00003.gguf (version GGUF V3 (latest))
+llama_model_loader: Dumping metadata keys/values. Note: KV overrides do not apply in this output.
+llama_model_loader: - kv   0:                       general.architecture str              = qwen3moe
+llama_model_loader: - kv   1:                               general.type str              = model
+llama_model_loader: - kv   2:                               general.name str              = Qwen3-235B-A22B
+llama_model_loader: - kv   3:                           general.basename str              = Qwen3-235B-A22B
+llama_model_loader: - kv   4:                       general.quantized_by str              = Unsloth
+llama_model_loader: - kv   5:                         general.size_label str              = 235B-A22B
+llama_model_loader: - kv   6:                            general.license str              = apache-2.0
+llama_model_loader: - kv   7:                       general.license.link str              = https://huggingface.co/Qwen/Qwen3-235...
+llama_model_loader: - kv   8:                           general.repo_url str              = https://huggingface.co/unsloth
+llama_model_loader: - kv   9:                   general.base_model.count u32              = 1
+llama_model_loader: - kv  10:                  general.base_model.0.name str              = Qwen3 235B A22B
+llama_model_loader: - kv  11:          general.base_model.0.organization str              = Qwen
+llama_model_loader: - kv  12:              general.base_model.0.repo_url str              = https://huggingface.co/Qwen/Qwen3-235...
+llama_model_loader: - kv  13:                               general.tags arr[str,2]       = ["unsloth", "text-generation"]
+llama_model_loader: - kv  14:                       qwen3moe.block_count u32              = 94
+llama_model_loader: - kv  15:                    qwen3moe.context_length u32              = 40960
+llama_model_loader: - kv  16:                  qwen3moe.embedding_length u32              = 4096
+llama_model_loader: - kv  17:               qwen3moe.feed_forward_length u32              = 12288
+llama_model_loader: - kv  18:              qwen3moe.attention.head_count u32              = 64
+llama_model_loader: - kv  19:           qwen3moe.attention.head_count_kv u32              = 4
+llama_model_loader: - kv  20:                    qwen3moe.rope.freq_base f32              = 1000000.000000
+llama_model_loader: - kv  21:  qwen3moe.attention.layer_norm_rms_epsilon f32              = 0.000001
+llama_model_loader: - kv  22:                 qwen3moe.expert_used_count u32              = 8
+llama_model_loader: - kv  23:              qwen3moe.attention.key_length u32              = 128
+llama_model_loader: - kv  24:            qwen3moe.attention.value_length u32              = 128
+llama_model_loader: - kv  25:                      qwen3moe.expert_count u32              = 128
+llama_model_loader: - kv  26:        qwen3moe.expert_feed_forward_length u32              = 1536
+llama_model_loader: - kv  27:                       tokenizer.ggml.model str              = gpt2
+llama_model_loader: - kv  28:                         tokenizer.ggml.pre str              = qwen2
+llama_model_loader: - kv  29:                      tokenizer.ggml.tokens arr[str,151936]  = ["!", "\"", "#", "$", "%", "&", "'", ...
+llama_model_loader: - kv  30:                  tokenizer.ggml.token_type arr[i32,151936]  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ...
+llama_model_loader: - kv  31:                      tokenizer.ggml.merges arr[str,151387]  = ["Ġ Ġ", "ĠĠ ĠĠ", "i n", "Ġ t",...
+llama_model_loader: - kv  32:                tokenizer.ggml.eos_token_id u32              = 151645
+llama_model_loader: - kv  33:            tokenizer.ggml.padding_token_id u32              = 151654
+llama_model_loader: - kv  34:                tokenizer.ggml.bos_token_id u32              = 151643
+llama_model_loader: - kv  35:               tokenizer.ggml.add_bos_token bool             = false
+llama_model_loader: - kv  36:                    tokenizer.chat_template str              = {%- if tools %}\n    {{- '<|im_start|>...
+llama_model_loader: - kv  37:               general.quantization_version u32              = 2
+llama_model_loader: - kv  38:                          general.file_type u32              = 11
+llama_model_loader: - kv  39:                      quantize.imatrix.file str              = Qwen3-235B-A22B-GGUF/imatrix_unsloth.dat
+llama_model_loader: - kv  40:                   quantize.imatrix.dataset str              = unsloth_calibration_Qwen3-235B-A22B.txt
+llama_model_loader: - kv  41:             quantize.imatrix.entries_count i32              = 744
+llama_model_loader: - kv  42:              quantize.imatrix.chunks_count i32              = 685
+llama_model_loader: - kv  43:                                   split.no u16              = 0
+llama_model_loader: - kv  44:                        split.tensors.count i32              = 1131
+llama_model_loader: - kv  45:                                split.count u16              = 3
+llama_model_loader: - type  f32:  471 tensors
+llama_model_loader: - type q3_K:  659 tensors
+llama_model_loader: - type q6_K:    1 tensors
+print_info: file format = GGUF V3 (latest)
+print_info: file type   = Q3_K - Small
+print_info: file size   = 94.47 GiB (3.45 BPW)
+load: special tokens cache size = 26
+load: token to piece cache size = 0.9311 MB
+print_info: arch             = qwen3moe
+print_info: vocab_only       = 0
+print_info: n_ctx_train      = 40960
+print_info: n_embd           = 4096
+print_info: n_layer          = 94
+print_info: n_head           = 64
+print_info: n_head_kv        = 4
+print_info: n_rot            = 128
+print_info: n_swa            = 0
+print_info: n_swa_pattern    = 1
+print_info: n_embd_head_k    = 128
+print_info: n_embd_head_v    = 128
+print_info: n_gqa            = 16
+print_info: n_embd_k_gqa     = 512
+print_info: n_embd_v_gqa     = 512
+print_info: f_norm_eps       = 0.0e+00
+print_info: f_norm_rms_eps   = 1.0e-06
+print_info: f_clamp_kqv      = 0.0e+00
+print_info: f_max_alibi_bias = 0.0e+00
+print_info: f_logit_scale    = 0.0e+00
+print_info: f_attn_scale     = 0.0e+00
+print_info: n_ff             = 12288
+print_info: n_expert         = 128
+print_info: n_expert_used    = 8
+print_info: causal attn      = 1
+print_info: pooling type     = 0
+print_info: rope type        = 2
+print_info: rope scaling     = linear
+print_info: freq_base_train  = 1000000.0
+print_info: freq_scale_train = 1
+print_info: n_ctx_orig_yarn  = 40960
+print_info: rope_finetuned   = unknown
+print_info: ssm_d_conv       = 0
+print_info: ssm_d_inner      = 0
+print_info: ssm_d_state      = 0
+print_info: ssm_dt_rank      = 0
+print_info: ssm_dt_b_c_rms   = 0
+print_info: model type       = 235B.A22B
+print_info: model params     = 235.09 B
+print_info: general.name     = Qwen3-235B-A22B
+print_info: n_ff_exp         = 1536
+print_info: vocab type       = BPE
+print_info: n_vocab          = 151936
+print_info: n_merges         = 151387
+print_info: BOS token        = 151643 '<|endoftext|>'
+print_info: EOS token        = 151645 '<|im_end|>'
+print_info: EOT token        = 151645 '<|im_end|>'
+print_info: PAD token        = 151654 '<|vision_pad|>'
+print_info: LF token         = 198 'Ċ'
+print_info: FIM PRE token    = 151659 '<|fim_prefix|>'
+print_info: FIM SUF token    = 151661 '<|fim_suffix|>'
+print_info: FIM MID token    = 151660 '<|fim_middle|>'
+print_info: FIM PAD token    = 151662 '<|fim_pad|>'
+print_info: FIM REP token    = 151663 '<|repo_name|>'
+print_info: FIM SEP token    = 151664 '<|file_sep|>'
+print_info: EOG token        = 151643 '<|endoftext|>'
+print_info: EOG token        = 151645 '<|im_end|>'
+print_info: EOG token        = 151662 '<|fim_pad|>'
+print_info: EOG token        = 151663 '<|repo_name|>'
+print_info: EOG token        = 151664 '<|file_sep|>'
+print_info: max token length = 256
+load_tensors: loading model tensors, this can take a while... (mmap = true)
+load_tensors: offloading 93 repeating layers to GPU
+load_tensors: offloaded 93/95 layers to GPU
+load_tensors:      Vulkan0 model buffer size = 94976.34 MiB
+load_tensors:   CPU_Mapped model buffer size =  1763.14 MiB
+....................................................................................................
+llama_context: constructing llama_context
+llama_context: n_seq_max     = 1
+llama_context: n_ctx         = 4096
+llama_context: n_ctx_per_seq = 4096
+llama_context: n_batch       = 2048
+llama_context: n_ubatch      = 512
+llama_context: causal_attn   = 1
+llama_context: flash_attn    = 0
+llama_context: freq_base     = 1000000.0
+llama_context: freq_scale    = 1
+llama_context: n_ctx_per_seq (4096) < n_ctx_train (40960) -- the full capacity of the model will not be utilized
+llama_context:        CPU  output buffer size =     0.58 MiB
+llama_kv_cache_unified: kv_size = 4096, type_k = 'f16', type_v = 'f16', n_layer = 94, can_shift = 1, padding = 32
+llama_kv_cache_unified:    Vulkan0 KV buffer size =   744.00 MiB
+llama_kv_cache_unified:        CPU KV buffer size =     8.00 MiB
+llama_kv_cache_unified: KV self size  =  752.00 MiB, K (f16):  376.00 MiB, V (f16):  376.00 MiB
+llama_context:    Vulkan0 compute buffer size =   791.61 MiB
+llama_context: Vulkan_Host compute buffer size =    16.01 MiB
+llama_context: graph nodes  = 6116
+llama_context: graph splits = 19 (with bs=512), 5 (with bs=1)
+common_init_from_params: setting dry_penalty_last_n to ctx_size = 4096
+common_init_from_params: warming up the model with an empty run - please wait ... (--no-warmup to disable)
+main: llama threadpool init, n_threads = 16
+main: chat template is available, enabling conversation mode (disable it with -no-cnv)
+main: chat template example:
+<|im_start|>system
+You are a helpful assistant<|im_end|>
+<|im_start|>user
+Hello<|im_end|>
+<|im_start|>assistant
+Hi there<|im_end|>
+<|im_start|>user
+How are you?<|im_end|>
+<|im_start|>assistant
+
+
+system_info: n_threads = 16 (n_threads_batch = 16) / 32 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX_VNNI = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | AVX512 = 1 | AVX512_VBMI = 1 | AVX512_VNNI = 1 | AVX512_BF16 = 1 | LLAMAFILE = 1 | OPENMP = 1 | AARCH64_REPACK = 1 |
+
+main: interactive mode on.
+sampler seed: 2837705288
+sampler params:
+        repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+        dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 4096
+        top_k = 40, top_p = 0.950, min_p = 0.050, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.800
+        mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000
+sampler chain: logits -> logit-bias -> penalties -> dry -> top-n-sigma -> top-k -> typical -> top-p -> min-p -> xtc -> temp-ext -> dist
+generate: n_ctx = 4096, n_batch = 2048, n_predict = -1, n_keep = 0
+
+== Running in interactive mode. ==
+ - Press Ctrl+C to interject at any time.
+ - Press Return to return control to the AI.
+ - To return control without starting a new line, end your input with '/'.
+ - If you want to submit another line, end your input with '\'.
+ - Not using system message. To change it, set a different value via -sys PROMPT
+
+
+> こんにちは
+<think>
+Alright, the user greeted me with "こんにちは", which is Japanese for "Hello". I should respond in kind, using Japanese to keep the conversation natural. I'll make sure to greet them back and offer assistance in a friendly manner.
+
+Let me check if there's any specific cultural nuance I should be aware of. Since it's a simple greeting, a straightforward response should suffice. I'll keep it polite and open-ended to encourage them to ask any questions they might have.
+
+Okay, the response should be something like: "こんにちは！何かお手伝いできることがありますか？" which translates to "Hello! Is there anything I can help you with?" That sounds good. It's polite, welcoming, and offers assistance.
+</think>
+
+こんにちは！何かお手伝いできることがありますか？
+
+
+```
+
+
+# vulkan環境の各LLMモデルのベンチマーク結果
+
+### Qwen3-235B-A22B_Q3_K_S(95GB)
+```
+amd-ai-worker1:~/work/llama.cpp-vulkan$ build/bin/llama-bench -ngl 93 --model /mnt/data/models/llama.cpp/common/Qwen3-235B-A22B-Q3_K_S-00001-of-00003.gguf
+ggml_vulkan: Found 1 Vulkan devices:
+ggml_vulkan: 0 = AMD Radeon Graphics (RADV GFX1151) (radv) | uma: 1 | fp16: 1 | warp size: 64 | shared memory: 65536 | int dot: 1 | matrix cores: KHR_coopmat
+| model                          |       size |     params | backend    | ngl |            test |                  t/s |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --------------: | -------------------: |
+| qwen3moe 235B.A22B Q3_K - Small |  94.47 GiB |   235.09 B | Vulkan     |  93 |           pp512 |         16.39 ± 0.03 |
+| qwen3moe 235B.A22B Q3_K - Small |  94.47 GiB |   235.09 B | Vulkan     |  93 |           tg128 |         14.18 ± 0.28 |
+```
+### その他主要モデル
+```
+ggml_vulkan: Found 1 Vulkan devices:
+ggml_vulkan: 0 = AMD Radeon Graphics (RADV GFX1151) (radv) | uma: 1 | fp16: 1 | warp size: 64 | shared memory: 65536 | int dot: 1 | matrix cores: KHR_coopmat
+| model                          |       size |     params | backend    | ngl |            test |                  t/s |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --------------: | -------------------: |
+| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |           pp512 |         71.98 ± 0.20 |
+| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |           tg128 |         72.01 ± 0.09 |
+| qwen3 32B Q4_K - Medium        |  18.40 GiB |    32.76 B | Vulkan     |  99 |           pp512 |        140.48 ± 2.20 |
+| qwen3 32B Q4_K - Medium        |  18.40 GiB |    32.76 B | Vulkan     |  99 |           tg128 |         10.42 ± 0.00 |
+| qwen3moe 30B.A3B Q8_0          |  33.51 GiB |    30.53 B | Vulkan     |  99 |           pp512 |         72.65 ± 0.22 |
+| qwen3moe 30B.A3B Q8_0          |  33.51 GiB |    30.53 B | Vulkan     |  99 |           tg128 |         29.87 ± 0.11 |
+| llama 7B Q4_K - Medium         |   3.80 GiB |     6.74 B | Vulkan     |  99 |           pp512 |       672.08 ± 23.88 |
+| llama 7B Q4_K - Medium         |   3.80 GiB |     6.74 B | Vulkan     |  99 |           tg128 |         46.26 ± 0.11 |
+| llama 7B Q4_0                  |   3.56 GiB |     6.74 B | Vulkan     |  99 |           pp512 |       822.14 ± 29.33 |
+| llama 7B Q4_0                  |   3.56 GiB |     6.74 B | Vulkan     |  99 |           tg128 |         49.35 ± 0.07 |
+
+build: c531edfa (5398)
+```
 
 
 

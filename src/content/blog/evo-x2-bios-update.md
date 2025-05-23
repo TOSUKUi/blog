@@ -52,15 +52,15 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-pc-setup
 - `AXB35-02_BIOS_UpdateEFI.nsh`を叩きたいため、USB を選択するという意味
 - ![efishell](/assets/efishell.png)
 
-1. nsh ファイルを実行
+9. nsh ファイルを実行
 
-- cd で`Shell`の中に入りファイル名を直接指定で実行 -> bios がインストールされる
-  ![nsh](/assets/nsh.png)
+   - cd で`Shell`の中に入りファイル名を直接指定で実行 -> bios がインストールされる
+     ![nsh](/assets/nsh.png)
 
-9. bios のアップデート中はコケたら文鎮確定なので、できるだけ揺らさないよう細心の注意を払って生活する。
+10. bios のアップデート中はコケたら文鎮確定なので、できるだけ揺らさないよう細心の注意を払って生活する。
 
 - 大体 6 分くらいでインストールが終わり、いきなりブチっと電源が切れる。
 
-10. そのまま起動するとアップデートが完了しているので、BIOS に入り、`GFX configration` > `igpu configration` > `[UMA_SPECIFIED]`に変更し、`UMA Frame buffer size`を 96G に変更すると GPU メモリ割り当てを 96G にできる
+11. そのまま起動するとアップデートが完了しているので、BIOS に入り、`GFX configration` > `igpu configration` > `[UMA_SPECIFIED]`に変更し、`UMA Frame buffer size`を 96G に変更すると GPU メモリ割り当てを 96G にできる
     ![gfx](/assets/gfx.png)
     ![96g](/assets/96g.png)

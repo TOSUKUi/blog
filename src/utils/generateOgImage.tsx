@@ -2,24 +2,12 @@ import satori, { SatoriOptions } from "satori";
 import { SITE } from "@config";
 import { writeFile } from "node:fs/promises";
 import { Resvg } from "@resvg/resvg-js";
+import fs from "fs/promises";
 
-const fetchFonts = async () => {
-  // Regular Font
-  const fontFileRegular = await fetch(
-    "https://www.1001fonts.com/download/font/ibm-plex-mono.regular.ttf"
-  );
-  const fontRegular: ArrayBuffer = await fontFileRegular.arrayBuffer();
-
-  // Bold Font
-  const fontFileBold = await fetch(
-    "https://www.1001fonts.com/download/font/ibm-plex-mono.bold.ttf"
-  );
-  const fontBold: ArrayBuffer = await fontFileBold.arrayBuffer();
-
-  return { fontRegular, fontBold };
-};
-
-const { fontRegular, fontBold } = await fetchFonts();
+const [fontRegular, fontBold] = await Promise.all([
+  fs.readFile("./public/fonts/BIZUDPGothic-Regular.ttf"),
+  fs.readFile("./public/fonts/BIZUDPGothic-Bold.ttf"),
+]);
 
 const ogImage = (text: string) => {
   return (
@@ -121,13 +109,13 @@ const options: SatoriOptions = {
   embedFont: true,
   fonts: [
     {
-      name: "IBM Plex Mono",
+      name: "Biz UDPGothic",
       data: fontRegular,
       weight: 400,
       style: "normal",
     },
     {
-      name: "IBM Plex Mono",
+      name: "Biz UDPGothic",
       data: fontBold,
       weight: 600,
       style: "normal",

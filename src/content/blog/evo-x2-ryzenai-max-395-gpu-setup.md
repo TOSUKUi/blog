@@ -6,12 +6,12 @@ postSlug: gmktec-ryzen-ai-pc-setup
 featured: true
 draft: false
 tags:
-    - ryzenai
-    - amd
-    - amdgpu
-    - gpu
-    - npu
-    - ll
+  - ryzenai
+  - amd
+  - amdgpu
+  - gpu
+  - npu
+  - ll
 ogImage: ""
 description: GMKTEcのAI PCをセットアップして、GPUのベンチマークを取ってみた
 canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-pc-setup
@@ -19,45 +19,44 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-pc-setup
 
 - [概要](#概要)
 - [目標](#目標)
-- [GMKTEC Evo X2の外観](#gmktec-evo-x2の外観)
-- [HIPを使った環境のセットアップ開始](#hipを使った環境のセットアップ開始)
-  - [NPUはどこいった？](#npuはどこいった)
-  - [llama.cppを動かす](#llamacppを動かす)
-- [(vulkanに)切り替えていく](#vulkanに切り替えていく)
-- [vulkan環境の各LLMモデルのベンチマーク結果](#vulkan環境の各llmモデルのベンチマーク結果)
-    - [Qwen3-235B-A22B\_Q3\_K\_S(95GB)](#qwen3-235b-a22b_q3_k_s95gb)
-    - [その他主要モデル](#その他主要モデル)
-- [batch sizeごとにprompt processingの速度を検証](#batch-sizeごとにprompt-processingの速度を検証)
+- [GMKTEC Evo X2 の外観](#gmktec-evo-x2の外観)
+- [HIP を使った環境のセットアップ開始](#hipを使った環境のセットアップ開始)
+  - [NPU はどこいった？](#npuはどこいった)
+  - [llama.cpp を動かす](#llamacppを動かす)
+- [(vulkan に)切り替えていく](#vulkanに切り替えていく)
+- [vulkan 環境の各 LLM モデルのベンチマーク結果](#vulkan環境の各llmモデルのベンチマーク結果)
+  - [Qwen3-235B-A22B_Q3_K_S(95GB)](#qwen3-235b-a22b_q3_k_s95gb)
+  - [その他主要モデル](#その他主要モデル)
+- [batch size ごとに prompt processing の速度を検証](#batch-sizeごとにprompt-processingの速度を検証)
   - [ちょっと長いコンテキストの場合](#ちょっと長いコンテキストの場合)
-  - [batch size 120でそれぞれのLLMの速度検証](#batch-size-120でそれぞれのllmの速度検証)
+  - [batch size 120 でそれぞれの LLM の速度検証](#batch-size-120でそれぞれのllmの速度検証)
 - [失敗例](#失敗例)
 
-
-
 # 概要
-GMKTec Evo X2を購入したが、amdgpuのセットアップが初めてなのでそのあたりの作業のメモがてらこの記事を書いた。
 
-また、人々が欲しているLLMのベンチマークについても詳しく調査する予定(追記予定)
+GMKTec Evo X2 を購入したが、amdgpu のセットアップが初めてなのでそのあたりの作業のメモがてらこの記事を書いた。
+
+また、人々が欲している LLM のベンチマークについても詳しく調査する予定(追記予定)
 
 # 目標
-AMDのGPUを使ってllama.cppを動かす！
-あと、NPUはlinuxで使えるのかというところについても最善を尽くす予定。
 
-なお、以下のサイトによるとvulkanが基本的に速いらしいが、
-ロングコンテキストになるとhip + rocwmmaが早くなるらしいぞ
+AMD の GPU を使って llama.cpp を動かす！
+あと、NPU は linux で使えるのかというところについても最善を尽くす予定。
+
+なお、以下のサイトによると vulkan が基本的に速いらしいが、
+ロングコンテキストになると hip + rocwmma が早くなるらしいぞ
 
 https://llm-tracker.info/_TOORG/Strix-Halo
 
-# GMKTEC Evo X2の外観
+# GMKTEC Evo X2 の外観
 
+# HIP を使った環境のセットアップ開始
 
-# HIPを使った環境のセットアップ開始
-
-下記のAMDGPU installerを使うとアホの顔しててもドライバのインストールをしてくれる。なかなかやるやん。
+下記の AMDGPU installer を使うとアホの顔しててもドライバのインストールをしてくれる。なかなかやるやん。
 https://rocm.docs.amd.com/projects/install-on-linux/en/develop/install/amdgpu-install.html
 
+amdgpu installer をインストールするためにリポジトリを追加
 
-amdgpu installerをインストールするためにリポジトリを追加
 ```bash
 sudo apt update
 wget https://repo.radeon.com/amdgpu-install/6.4/ubuntu/noble/amdgpu-install_6.4.60400-1_all.deb
@@ -66,7 +65,8 @@ sudo apt update
 ```
 
 `amdgpu-install --list-usecase`のコマンドでインストールする対象の一覧が表示される
-dkmsは全部のバージョンに含まれるらしい。
+dkms は全部のバージョンに含まれるらしい。
+
 ```
 amd-ai-worker1:~$ amdgpu-install --list-usecase
 If --usecase option is not present, the default selection is
@@ -131,8 +131,9 @@ asan            (for users of ASAN enabled ROCm packages)
   - ASAN enabled ROCm libraries
 ```
 
-今回はLLMが目標のためrocmをインストールしてみる。
-ついでに、rocmのユースケースにはhipが含まれるが、llama.cppのランタイムとして、hipを使うことができるのでそれを目指す。
+今回は LLM が目標のため rocm をインストールしてみる。
+ついでに、rocm のユースケースには hip が含まれるが、llama.cpp のランタイムとして、hip を使うことができるのでそれを目指す。
+
 ```bash
 amdgpu-install --usecase=rocm
 ...
@@ -140,8 +141,9 @@ amd-ai-worker1:~$ sudo dkms status
 amdgpu/6.12.12-2147987.24.04, 6.11.0-25-generic, x86_64: installed
 ```
 
-とりあえずGPUの情報を見たい.
-nvidia-smiならぬamd-smiを使うことで、確認が可能
+とりあえず GPU の情報を見たい.
+nvidia-smi ならぬ amd-smi を使うことで、確認が可能
+
 ```
 amd-ai-worker1:~$ amd-smi static
 GPU: 0
@@ -159,27 +161,28 @@ GPU: 0
         TARGET_GRAPHICS_VERSION: gfx1151
 ```
 
-ここまで入れたら、nvtopをapt経由でインストールすると普通に使える
+ここまで入れたら、nvtop を apt 経由でインストールすると普通に使える
 
-厳密にはfdinfoというインターフェース経由でGPUのリソースデータが公開されているらしく、
+厳密には fdinfo というインターフェース経由で GPU のリソースデータが公開されているらしく、
 それを使っているとのこと
+
 ```
 sudo apt install nvtop
 ```
-![radeon](../../assets/nvtop_igpu.png)
 
+![radeon](/assets/nvtop_igpu.png)
 
-## NPUはどこいった？
-NPUは別途ドライバをインストールする必要があり、amdgpu-installerでは対応していない模様。
+## NPU はどこいった？
+
+NPU は別途ドライバをインストールする必要があり、amdgpu-installer では対応していない模様。
 
 下記ページにてインストール可能だが、今後の宿題である
 
 https://github.com/amd/xdna-driver?tab=readme-ov-file#introduction
 
+## llama.cpp を動かす
 
-## llama.cppを動かす
-
-こちらのhipインストールの項目より動かしてみる
+こちらの hip インストールの項目より動かしてみる
 
 https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md#hip
 
@@ -188,13 +191,15 @@ git clone https://github.com/ggml-org/llama.cpp
 cd llama.cpp
 ```
 
-なお、HIPランタイムで実行する場合、手動でのビルドが必要。
-ビルド前にcurlのdevパッケージがいる
+なお、HIP ランタイムで実行する場合、手動でのビルドが必要。
+ビルド前に curl の dev パッケージがいる
+
 ```
 sudo apt install curl libcurl4-openssl-dev
 ```
 
-まず自分のiGPUの型番を調べる
+まず自分の iGPU の型番を調べる
+
 ```
 amd-ai-worker1:~/work/llama.cpp$ rocminfo | grep gfx | head -1 | awk '{print $2}'
 gfx1151
@@ -204,12 +209,12 @@ gfx1151
 
 ビルドは結構早い。
 
-また、`-DGGML_HIP_ROCWMMA_FATTN=ON`をビルド引数で渡すと、ROCWMMAとFlashAttentionk機能を有効化してくれる
+また、`-DGGML_HIP_ROCWMMA_FATTN=ON`をビルド引数で渡すと、ROCWMMA と FlashAttentionk 機能を有効化してくれる
 
-ROCWMMAはいい感じに演算を加速してくれるやつ
+ROCWMMA はいい感じに演算を加速してくれるやつ
 
+16 コア 32 スレッドは伊達じゃない。
 
-16コア32スレッドは伊達じゃない。
 ```
 HIPCXX="$(hipconfig -l)/clang" HIP_PATH="$(hipconfig -R)" \
     cmake -S . -B build -DGGML_HIP=ON -DAMDGPU_TARGETS=gfx1151 -DCMAKE_BUILD_TYPE=Release \
@@ -298,10 +303,10 @@ This warning is for project developers.  Use -Wno-dev to suppress it.
 [100%] Built target llama-server
 ```
 
+llama-cli を動かして、動くか確かめる。
 
-llama-cliを動かして、動くか確かめる。
+なお、`GGML_CUDA_ENABLE_UNIFIED_MEMORY=1`を環境変数で渡すと、unified memory を有効化してくれるらしい（ほんとか？）
 
-なお、`GGML_CUDA_ENABLE_UNIFIED_MEMORY=1`を環境変数で渡すと、unified memoryを有効化してくれるらしい（ほんとか？）
 ```
 GGML_CUDA_ENABLE_UNIFIED_MEMORY=1  build/bin/llama-cli -ngl 29  -hf unsloth/Qwen3-0.6B-GGUF:Q8_0
 
@@ -310,12 +315,14 @@ GGML_CUDA_ENABLE_UNIFIED_MEMORY=1  build/bin/llama-cli -ngl 29  -hf unsloth/Qwen
 
 ```
 
-linuxのカーネルが6.11だが、これだとダメなのかもしれない。要調査
+linux のカーネルが 6.11 だが、これだとダメなのかもしれない。要調査
 
-# (vulkanに)切り替えていく
-hipを使った実行がうまくいかないので、vulkanを使う方向に舵を切る
+# (vulkan に)切り替えていく
 
-vulkanのインストール
+hip を使った実行がうまくいかないので、vulkan を使う方向に舵を切る
+
+vulkan のインストール
+
 ```
 wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
 sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-noble.list http://packages.lunarg.com/vulkan/lunarg-vulkan-noble.list
@@ -324,6 +331,7 @@ sudo apt install vulkan-sdk
 ```
 
 インストール確認
+
 ```
 @amd-ai-worker1:~/work/llama.cpp$ vulkaninfo
 WARNING: [Loader Message] Code 0 : Layer VK_LAYER_MESA_device_select uses API version 1.3 which is older than the applica
@@ -375,12 +383,10 @@ VK_LAYER_INTEL_nullhw (INTEL NULL HW) Vulkan version 1.1.73, layer version 1:
                 Layer-Device Extensions: count = 0
 ```
 
-
 認識しているので問題なく入っていると仮定
 
-
-llama.cppのビルド
-hipのビルドと比較して時間がかかる
+llama.cpp のビルド
+hip のビルドと比較して時間がかかる
 
 ```bash
 amd-ai-worker1:~/work/llama.cpp-vulkan$ cmake -B build -DGGML_VULKAN=1 \
@@ -397,9 +403,9 @@ amd-ai-worker1:~/work/llama.cpp-vulkan$ cmake -B build -DGGML_VULKAN=1 \
 [100%] Built target llama-export-lora
 ```
 
-無事GPUメモリに乗った
+無事 GPU メモリに乗った
 
-unified memoryはちゃんと使えるのかが不明
+unified memory はちゃんと使えるのかが不明
 
 ```
 amd-ai-worker1:~/work/llama.cpp-vulkan$ build/bin/llama-cli -ngl 29  -hf unsloth/Qwen3-0.6B-GGUF:Q8_0
@@ -584,17 +590,15 @@ Okay, the user said "こんにちは" which is Japanese. I need to respond appro
 >
 ```
 
+0.6B なのでかなり速いスピードで動いたが、これは当然である。
 
-0.6Bなのでかなり速いスピードで動いたが、これは当然である。
-
-
-Qwen3-30-a3bを走らせてみる
+Qwen3-30-a3b を走らせてみる
 https://huggingface.co/unsloth/Qwen3-30B-A3B-128K-GGUF
 
-Unslothの量子化モデルの、Q8_K_XLを動かしてみる。RTX4090ではできない領域なので動かしてみたかったというのが大きい。
-
+Unsloth の量子化モデルの、Q8_K_XL を動かしてみる。RTX4090 ではできない領域なので動かしてみたかったというのが大きい。
 
 モデルのダウンロード
+
 ```bash
 amd-ai-worker1:/mnt/data/models/llama.cpp/common$ wget https://huggingface.co/unsloth/Qwen3-30B-A3B-128K-GGUF/resolve/main/Qwen3-30B-A3B-128K-UD-Q8_K_XL.gguf
 
@@ -616,9 +620,9 @@ Qwen3-30B-A3B-128K-UD-Q8_K_XL.gguf        100%[=================================
 
 ```
 
-また、Qwen235B a22b のq3_k_sも乗った
+また、Qwen235B a22b の q3_k_s も乗った
 
-93/95レイヤーがGPU offloadできる限界
+93/95 レイヤーが GPU offload できる限界
 
 ```
 amd-ai-worker1:~/work/llama.cpp-vulkan$ build/bin/llama-cli -ngl 93 --model /mnt/data/models/llama.cpp/common/Qwen3-235B-A22B-Q3_K_S-00001-of-00003.gguf
@@ -822,137 +826,128 @@ Okay, the response should be something like: "こんにちは！何かお手伝�
 
 ```
 
-
-# vulkan環境の各LLMモデルのベンチマーク結果
+# vulkan 環境の各 LLM モデルのベンチマーク結果
 
 ### Qwen3-235B-A22B_Q3_K_S(95GB)
+
 ```
 amd-ai-worker1:~/work/llama.cpp-vulkan$ build/bin/llama-bench -ngl 93 --model /mnt/data/models/llama.cpp/common/Qwen3-235B-A22B-Q3_K_S-00001-of-00003.gguf
 ggml_vulkan: Found 1 Vulkan devices:
 ggml_vulkan: 0 = AMD Radeon Graphics (RADV GFX1151) (radv) | uma: 1 | fp16: 1 | warp size: 64 | shared memory: 65536 | int dot: 1 | matrix cores: KHR_coopmat
 ```
 
-| model                          |       size |     params | backend    | ngl |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | --------------: | -------------------: |
-| qwen3moe 235B.A22B Q3_K - Small |  94.47 GiB |   235.09 B | Vulkan     |  93 |           pp512 |         16.39 ± 0.03 |
-| qwen3moe 235B.A22B Q3_K - Small |  94.47 GiB |   235.09 B | Vulkan     |  93 |           tg128 |         14.18 ± 0.28 |
+| model                           |      size |   params | backend | ngl |  test |          t/s |
+| ------------------------------- | --------: | -------: | ------- | --: | ----: | -----------: |
+| qwen3moe 235B.A22B Q3_K - Small | 94.47 GiB | 235.09 B | Vulkan  |  93 | pp512 | 16.39 ± 0.03 |
+| qwen3moe 235B.A22B Q3_K - Small | 94.47 GiB | 235.09 B | Vulkan  |  93 | tg128 | 14.18 ± 0.28 |
+
 ### その他主要モデル
+
 ```
 ggml_vulkan: Found 1 Vulkan devices:
 ggml_vulkan: 0 = AMD Radeon Graphics (RADV GFX1151) (radv) | uma: 1 | fp16: 1 | warp size: 64 | shared memory: 65536 | int dot: 1 | matrix cores: KHR_coopmat
 ```
 
-| model                          |       size |     params | backend    | ngl |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | --------------: | -------------------: |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |           pp512 |         71.98 ± 0.20 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |           tg128 |         72.01 ± 0.09 |
-| qwen3 32B Q4_K - Medium        |  18.40 GiB |    32.76 B | Vulkan     |  99 |           pp512 |        140.48 ± 2.20 |
-| qwen3 32B Q4_K - Medium        |  18.40 GiB |    32.76 B | Vulkan     |  99 |           tg128 |         10.42 ± 0.00 |
-| qwen3moe 30B.A3B Q8_0          |  33.51 GiB |    30.53 B | Vulkan     |  99 |           pp512 |         72.65 ± 0.22 |
-| qwen3moe 30B.A3B Q8_0          |  33.51 GiB |    30.53 B | Vulkan     |  99 |           tg128 |         29.87 ± 0.11 |
-| llama 7B Q4_K - Medium         |   3.80 GiB |     6.74 B | Vulkan     |  99 |           pp512 |       672.08 ± 23.88 |
-| llama 7B Q4_K - Medium         |   3.80 GiB |     6.74 B | Vulkan     |  99 |           tg128 |         46.26 ± 0.11 |
-| llama 7B Q4_0                  |   3.56 GiB |     6.74 B | Vulkan     |  99 |           pp512 |       822.14 ± 29.33 |
-| llama 7B Q4_0                  |   3.56 GiB |     6.74 B | Vulkan     |  99 |           tg128 |         49.35 ± 0.07 |
+| model                          |      size |  params | backend | ngl |  test |            t/s |
+| ------------------------------ | --------: | ------: | ------- | --: | ----: | -------------: |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 | pp512 |   71.98 ± 0.20 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 | tg128 |   72.01 ± 0.09 |
+| qwen3 32B Q4_K - Medium        | 18.40 GiB | 32.76 B | Vulkan  |  99 | pp512 |  140.48 ± 2.20 |
+| qwen3 32B Q4_K - Medium        | 18.40 GiB | 32.76 B | Vulkan  |  99 | tg128 |   10.42 ± 0.00 |
+| qwen3moe 30B.A3B Q8_0          | 33.51 GiB | 30.53 B | Vulkan  |  99 | pp512 |   72.65 ± 0.22 |
+| qwen3moe 30B.A3B Q8_0          | 33.51 GiB | 30.53 B | Vulkan  |  99 | tg128 |   29.87 ± 0.11 |
+| llama 7B Q4_K - Medium         |  3.80 GiB |  6.74 B | Vulkan  |  99 | pp512 | 672.08 ± 23.88 |
+| llama 7B Q4_K - Medium         |  3.80 GiB |  6.74 B | Vulkan  |  99 | tg128 |   46.26 ± 0.11 |
+| llama 7B Q4_0                  |  3.56 GiB |  6.74 B | Vulkan  |  99 | pp512 | 822.14 ± 29.33 |
+| llama 7B Q4_0                  |  3.56 GiB |  6.74 B | Vulkan  |  99 | tg128 |   49.35 ± 0.07 |
 
 ```
 build: c531edfa (5398)
 ```
 
-# batch sizeごとにprompt processingの速度を検証
-気がついたが、qwen3moe系の`prompt processing`が遅い問題があり、batch sizeを変えてみたら速くなったりしたので、 batchsizeを変えてみて検証
+# batch size ごとに prompt processing の速度を検証
+
+気がついたが、qwen3moe 系の`prompt processing`が遅い問題があり、batch size を変えてみたら速くなったりしたので、 batchsize を変えてみて検証
 
 ```
 amd-ai-worker1:~/work/llama.cpp-vulkan$ build/bin/llama-bench --batch-size 1280,640,320,240,120,60,1,0  -ngl 99 -m /mnt/data/models/llama.cpp/common/Qwen3-30B-A3B-UD-Q4_K_XL.gguf
 ggml_vulkan: Found 1 Vulkan devices:
 ggml_vulkan: 0 = AMD Radeon Graphics (RADV GFX1151) (radv) | uma: 1 | fp16: 1 | warp size: 64 | shared memory: 65536 | int dot: 1 | matrix cores: KHR_coopmat
 ```
-| model                          |       size |     params | backend    | ngl | n_batch |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | ------: | --------------: | -------------------: |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |    1280 |           pp512 |         72.15 ± 0.25 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |    1280 |           tg128 |         71.97 ± 0.07 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |     640 |           pp512 |         72.08 ± 0.25 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |     640 |           tg128 |         71.87 ± 0.10 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |     320 |           pp512 |        117.38 ± 0.38 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |     320 |           tg128 |         72.00 ± 0.07 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |     240 |           pp512 |        120.95 ± 0.50 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |     240 |           tg128 |         72.07 ± 0.04 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |     120 |           pp512 |        169.14 ± 1.98 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |     120 |           tg128 |         72.05 ± 0.03 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |      60 |           pp512 |        155.52 ± 3.49 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |      60 |           tg128 |         72.19 ± 0.05 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |       1 |           pp512 |         70.78 ± 0.03 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |       1 |           tg128 |         72.12 ± 0.06 |
 
-このあとsegfaultで死んだが、 redditによると、vulkanバックエンドの場合バッチサイズ365以上にするとぶっ飛ぶらしい
+| model                          |      size |  params | backend | ngl | n_batch |  test |           t/s |
+| ------------------------------ | --------: | ------: | ------- | --: | ------: | ----: | ------------: |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |    1280 | pp512 |  72.15 ± 0.25 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |    1280 | tg128 |  71.97 ± 0.07 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |     640 | pp512 |  72.08 ± 0.25 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |     640 | tg128 |  71.87 ± 0.10 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |     320 | pp512 | 117.38 ± 0.38 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |     320 | tg128 |  72.00 ± 0.07 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |     240 | pp512 | 120.95 ± 0.50 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |     240 | tg128 |  72.07 ± 0.04 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |     120 | pp512 | 169.14 ± 1.98 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |     120 | tg128 |  72.05 ± 0.03 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |      60 | pp512 | 155.52 ± 3.49 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |      60 | tg128 |  72.19 ± 0.05 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |       1 | pp512 |  70.78 ± 0.03 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |       1 | tg128 |  72.12 ± 0.06 |
+
+このあと segfault で死んだが、 reddit によると、vulkan バックエンドの場合バッチサイズ 365 以上にするとぶっ飛ぶらしい
 
 https://www.reddit.com/r/LocalLLaMA/comments/1kd5rua/qwen3_235ba22b_on_a_windows_tablet_111ts_on_amd/
 
-
-
 ## ちょっと長いコンテキストの場合
+
 ```
 amd-ai-worker1:~/work/llama.cpp-vulkan$ build/bin/llama-bench --batch-size 320,240,120,60,1,0 -p 4096 -n 512 -ngl 99 -m /mnt/data/models/llama.cpp/common/Qwen3-30B-A3B-UD-Q4_K_XL.gguf
 ggml_vulkan: Found 1 Vulkan devices:
 ggml_vulkan: 0 = AMD Radeon Graphics (RADV GFX1151) (radv) | uma: 1 | fp16: 1 | warp size: 64 | shared memory: 65536 | int dot: 1 | matrix cores: KHR_coopmat
 ```
 
-| model                          |       size |     params | backend    | ngl | n_batch |            test |                  t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | ------: | --------------: | -------------------: |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |     320 |          pp4096 |         99.75 ± 0.22 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |     320 |           tg512 |         70.71 ± 0.08 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |     240 |          pp4096 |        112.04 ± 0.43 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |     240 |           tg512 |         70.62 ± 0.04 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |     120 |          pp4096 |        153.81 ± 0.65 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |     120 |           tg512 |         70.62 ± 0.05 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |      60 |          pp4096 |        145.02 ± 0.63 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |      60 |           tg512 |         70.74 ± 0.02 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |       1 |          pp4096 |         57.53 ± 0.16 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |       1 |           tg512 |         70.65 ± 0.02 |
+| model                          |      size |  params | backend | ngl | n_batch |   test |           t/s |
+| ------------------------------ | --------: | ------: | ------- | --: | ------: | -----: | ------------: |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |     320 | pp4096 |  99.75 ± 0.22 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |     320 |  tg512 |  70.71 ± 0.08 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |     240 | pp4096 | 112.04 ± 0.43 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |     240 |  tg512 |  70.62 ± 0.04 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |     120 | pp4096 | 153.81 ± 0.65 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |     120 |  tg512 |  70.62 ± 0.05 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |      60 | pp4096 | 145.02 ± 0.63 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |      60 |  tg512 |  70.74 ± 0.02 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |       1 | pp4096 |  57.53 ± 0.16 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan  |  99 |       1 |  tg512 |  70.65 ± 0.02 |
 
 これも Segmentation fault (core dumped)で落ちたが、走り切ってくれた
 
+## batch size 120 でそれぞれの LLM の速度検証
 
-## batch size 120でそれぞれのLLMの速度検証
-こちらは予想外にも、llama2 7bやQwen3 32Bなどのdenseモデル系でのppがわずかに遅くなった
+こちらは予想外にも、llama2 7b や Qwen3 32B などの dense モデル系での pp がわずかに遅くなった
 
-これはこれで最適なバッチサイズがありそうだが、少なくともmoeモデルは120あたりにするのが妥当か
+これはこれで最適なバッチサイズがありそうだが、少なくとも moe モデルは 120 あたりにするのが妥当か
 
 ggml_vulkan: Found 1 Vulkan devices:
 ggml_vulkan: 0 = AMD Radeon Graphics (RADV GFX1151) (radv) | uma: 1 | fp16: 1 | warp size: 64 | shared memory: 65536 | int dot: 1 | matrix cores: KHR_coopmat
-| model                          |       size |     params | backend    | ngl | n_batch |            test |                  t/s |
+| model | size | params | backend | ngl | n_batch | test | t/s |
 | ------------------------------ | ---------: | ---------: | ---------- | --: | ------: | --------------: | -------------------: |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |     120 |           pp512 |        168.89 ± 1.09 |
-| qwen3moe 30B.A3B Q4_K - Medium |  16.49 GiB |    30.53 B | Vulkan     |  99 |     120 |           tg128 |         71.86 ± 0.27 |
-| qwen3 32B Q4_K - Medium        |  18.40 GiB |    32.76 B | Vulkan     |  99 |     120 |           pp512 |        127.39 ± 1.97 |
-| qwen3 32B Q4_K - Medium        |  18.40 GiB |    32.76 B | Vulkan     |  99 |     120 |           tg128 |         10.60 ± 0.01 |
-| qwen3moe 30B.A3B Q8_0          |  33.51 GiB |    30.53 B | Vulkan     |  99 |     120 |           pp512 |        175.26 ± 1.88 |
-| qwen3moe 30B.A3B Q8_0          |  33.51 GiB |    30.53 B | Vulkan     |  99 |     120 |           tg128 |         29.97 ± 0.01 |
-| llama 7B Q4_K - Medium         |   3.80 GiB |     6.74 B | Vulkan     |  99 |     120 |           pp512 |       587.71 ± 31.26 |
-| llama 7B Q4_K - Medium         |   3.80 GiB |     6.74 B | Vulkan     |  99 |     120 |           tg128 |         46.15 ± 0.05 |
-| llama 7B Q4_0                  |   3.56 GiB |     6.74 B | Vulkan     |  99 |     120 |           pp512 |       744.30 ± 28.18 |
-| llama 7B Q4_0                  |   3.56 GiB |     6.74 B | Vulkan     |  99 |     120 |           tg128 |         49.87 ± 0.35 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan | 99 | 120 | pp512 | 168.89 ± 1.09 |
+| qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan | 99 | 120 | tg128 | 71.86 ± 0.27 |
+| qwen3 32B Q4_K - Medium | 18.40 GiB | 32.76 B | Vulkan | 99 | 120 | pp512 | 127.39 ± 1.97 |
+| qwen3 32B Q4_K - Medium | 18.40 GiB | 32.76 B | Vulkan | 99 | 120 | tg128 | 10.60 ± 0.01 |
+| qwen3moe 30B.A3B Q8_0 | 33.51 GiB | 30.53 B | Vulkan | 99 | 120 | pp512 | 175.26 ± 1.88 |
+| qwen3moe 30B.A3B Q8_0 | 33.51 GiB | 30.53 B | Vulkan | 99 | 120 | tg128 | 29.97 ± 0.01 |
+| llama 7B Q4_K - Medium | 3.80 GiB | 6.74 B | Vulkan | 99 | 120 | pp512 | 587.71 ± 31.26 |
+| llama 7B Q4_K - Medium | 3.80 GiB | 6.74 B | Vulkan | 99 | 120 | tg128 | 46.15 ± 0.05 |
+| llama 7B Q4_0 | 3.56 GiB | 6.74 B | Vulkan | 99 | 120 | pp512 | 744.30 ± 28.18 |
+| llama 7B Q4_0 | 3.56 GiB | 6.74 B | Vulkan | 99 | 120 | tg128 | 49.87 ± 0.35 |
 
 build: c531edfa (5398)
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # 失敗例
 
 ビルドする時に、ドキュメントの環境変数をそのままぶち込んでしまった例
 
-GPU_TARGETSがgfx1030になってしまっており、これでは動かない
+GPU_TARGETS が gfx1030 になってしまっており、これでは動かない
+
 ```
 HIPCXX="$(hipconfig -l)/clang" HIP_PATH="$(hipconfig -R)" \
     cmake -S . -B build -DGGML_HIP=ON -DAMDGPU_TARGETS=gfx1030 -DCMAKE_BUILD_TYPE=Release \
@@ -994,7 +989,6 @@ This warning is for project developers.  Use -Wno-dev to suppress it.
 見た感じ、build/bin/にお目当てのバイナリがありそうなので、そこを叩く
 
 だが、うまく動かない。
-
 
 ```
 amd-ai-worker1:~/work/llama.cpp$ build/bin/llama-cli -ngl 29  -hf unsloth/Qwen3-0.6B-GGUF:Q8_0

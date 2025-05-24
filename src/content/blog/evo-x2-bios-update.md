@@ -20,58 +20,87 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-pc-setup
 ---
 
 - [EVO X2 の BIOS アップデート(非 Windows)](#evo-x2-の-bios-アップデート非-windows)
-  - [別の端末で EFI ブートできる USB を用意する](#別の端末で-efi-ブートできる-usb-を用意する)
-  - [EVO X2 に挿して BIOS アップデートする](#evo-x2-に挿して-bios-アップデートする)
+  - [1. EFI ブートできる USB を用意する(別の端末で実施)](#1-efi-ブートできる-usb-を用意する別の端末で実施)
+    - [準備するもの](#準備するもの)
+    - [手順](#手順)
+  - [2. EVO X2 での BIOS アップデート手順](#2-evo-x2でのbiosアップデート手順)
+    - [手順](#手順-1)
 
 # EVO X2 の BIOS アップデート(非 Windows)
 
-## 別の端末で EFI ブートできる USB を用意する
+## 1. EFI ブートできる USB を用意する(別の端末で実施)
 
-※EFI ブートとは USB から OS や BIOS など低レイヤーに色々アクセスできる別の BIOS のようなものだと思って貰えば
+### 準備するもの
 
-1. まず USB フラッシュメモリを用意し、FAT32 でフォーマット
-2. ここのファイルをダウンロードし、ルートディレクトリに放り込む
-   - https://github.com/tianocore/edk2-archive/blob/master/EdkShellBinPkg/FullShell/X64/Shell_Full.efi
-   - 名前を shellx64.efi と変更(これにより BIOS から起動できるようになる)
-3. ここから GMKTEC の BIOS アップデートイメージをダウンロードする
-   - https://www.gmktec.com/pages/drivers-and-software
-4. 展開
-5. `ROM`ディレクトリと、`Shell`ディレクトリをそのままルートディレクトリに放り込む
-   - ディレクトリ構成
+- FAT32 フォーマット済みのフラッシュメモリ
+
+### 手順
+
+1. **EFI シェルファイルをダウンロード**
+   - [Shell_Full.efi](https://github.com/tianocore/edk2-archive/blob/master/EdkShellBinPkg/FullShell/X64/Shell_Full.efi) をダウンロード
+   - ファイル名を `shellx64.efi` に変更（BIOS から認識可能にするため）
+   - USB ストレージルートにコピーする
+2. **GMKTEC の BIOS アップデートファイルを取得**
+   - 公式サイトのダウンロード先: [GMKTEC ドライバページ](https://www.gmktec.com/pages/drivers-and-software)
+   - ダウンロード後、解凍して以下のディレクトリを USB ストレージルートにコピー
+     - `ROM`
+     - `Shell`
+3. **USB 内のディレクトリ構成**
    ```
-   % tree
-   USBフラッシュメモリルート
-   ├── shellx64.efi
-   ├── ROM
+   USBストレージルート
+   ├── shellx64.efi        # EFIシェル本体
+   └── ROM                # BIOS更新ファイル
    │   └── AXB3502104.bin
-   └── Shell
+   └── Shell              # 更新スクリプト
        ├── AfuEfix64.efi
        ├── AXB35-02_BIOS_UpdateEFI.nsh
        └── readme.txt
    ```
 
-## EVO X2 に挿して BIOS アップデートする
+## 2. EVO X2 での BIOS アップデート手順
 
-1. PC を起動し、ESC を連打して BIOS に入る
-2. Launch EFI Shell from filesystem device を選択
-   ![launchefi](/assets/launch_efi.png)
-3. シェル efi が起動する。USB 内部のインストールコマンドを打ちたいので、まず USB デバイスを選択する
-   - ![efishell](/assets/efishell.png)
-4. `Shell> fs1:`を入力し、ワーキングスペースとして USB デバイスを選択する
-   - 今回は fs1 が`removable blockdevice`だの USB だの書いてあるので`fs1`とした
-5. BIOS インストーラを実行
+### 手順
 
+1. **先ほど作った USB ストレージを EVO X2 に挿す**
+2. **BIOS 設定画面にアクセス**
+
+   - PC 起動時に **ESC キーを連打** して BIOS 画面へ
+
+3. **EFI Shell を起動**
+
+   - 以下を選択:
+     `Launch EFI Shell from filesystem device`
+     ![EFI起動選択](/assets/launch_efi.png)
+
+4. **シェル EFI が起動したあと、USB デバイスをマウント**
+
+   - シェル画面で以下を実行:
+     ```
+     Shell> fs1:
+     ```
+   - ※ `fs1`が USB デバイス（"removable blockdevice"と表示される）の場合の例です
+     - ![efishell](/assets/efishell.png)
+
+5. **BIOS 更新スクリプトを実行**
+
+   ```bash
+   Shell> cd Shell        # Shellディレクトリへ移動
+   Shell> AXB35-02_BIOS_UpdateEFI.nsh  # 更新スクリプトを実行
    ```
-   > cd Shell # Shellディレクトリに移動
-   > AXB35-02_BIOS_UpdateEFI.nsh # BIOSインストーラ起動
-   ```
 
-   ![nsh](/assets/nsh.png)
+   ![更新実行画面](/assets/nsh.png)
 
-6. bios のアップデート中はコケたら文鎮確定なので、できるだけ揺らさないよう細心の注意を払って生活する。
+6. **更新中の注意点**
 
-   - 大体 6 分くらいでインストールが終わり、いきなりブチっと電源が切れる。
+   - bios のアップデート中はコケたら文鎮確定なので、できるだけ揺らさないよう細心の注意を払って生活する
+   - 絶対に電源を切らないようにする
+   - だいたい 6 分後に自動シャットダウンするので → 再起動で更新完了
 
-7. そのまま起動するとアップデートが完了しているので、BIOS に入り、`GFX configration` > `igpu configration` > `[UMA_SPECIFIED]`に変更し、`UMA Frame buffer size`を 96G に変更すると GPU メモリ割り当てを 96G にできる
-   ![gfx](/assets/gfx.png)
-   ![96g](/assets/96g.png)
+7. **BIOS 設定の最適化（推奨）**
+   - BIOS 画面で以下を設定:
+     ```
+     GFX Configuration > iGPU Configuration > [UMA_SPECIFIED]
+     UMA Frame buffer size > [96G]
+     ```
+   - ![GPUメモリ設定](/assets/gfx.png)
+   - ![96GB設定画面](/assets/96g.png)

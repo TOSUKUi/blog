@@ -19,6 +19,10 @@ description: GMKTEcのAI PCをセットアップして、GPUのベンチマー�
 canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-pc-setup
 ---
 
+- [EVO X2 の BIOS アップデート(非 Windows)](#evo-x2-の-bios-アップデート非-windows)
+  - [別の端末で EFI ブートできる USB を用意する](#別の端末で-efi-ブートできる-usb-を用意する)
+  - [EVO X2 に挿して BIOS アップデートする](#evo-x2-に挿して-bios-アップデートする)
+
 # EVO X2 の BIOS アップデート(非 Windows)
 
 ## 別の端末で EFI ブートできる USB を用意する
@@ -32,7 +36,6 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-pc-setup
 3. ここから GMKTEC の BIOS アップデートイメージをダウンロードする
    - https://www.gmktec.com/pages/drivers-and-software
 4. 展開
-   - なお、efi で起動する分には`AMD_Flash_BIOS_SOP.docx`はまったく関係ない BIOS のインストールガイドなので読まない
 5. `ROM`ディレクトリと、`Shell`ディレクトリをそのままルートディレクトリに放り込む
    - ディレクトリ構成
    ```
@@ -49,22 +52,27 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-pc-setup
 
 ## EVO X2 に挿して BIOS アップデートする
 
-1. EVO X2 にさして BIOS 起動
+1. PC を起動し、ESC を連打して BIOS に入る
 2. Launch EFI Shell from filesystem device を選択
    ![launchefi](/assets/launch_efi.png)
-3. 今回は`Shell> fd1:`を入力
+3. USB 内部のインストールコマンドを打ちたいので、まず USB デバイスを選択する
 
-- `AXB35-02_BIOS_UpdateEFI.nsh`を叩きたいため、USB を選択するという意味
-- ![efishell](/assets/efishell.png)
+   - `AXB35-02_BIOS_UpdateEFI.nsh`を叩きたい
+   - 今回は画像の通り USB は fs1 に該当するので、`Shell> fs1:`を入力すると選択可能
+   - ![efishell](/assets/efishell.png)
 
 4. nsh ファイルを実行
 
-   - cd で`Shell`の中に入りファイル名を直接指定で実行 -> bios がインストールされる
-     ![nsh](/assets/nsh.png)
+   ```
+   > cd Shell # Shellディレクトリに移動
+   > AXB35-02_BIOS_UpdateEFI.nsh # BIOSインストーラ起動
+   ```
+
+   ![nsh](/assets/nsh.png)
 
 5. bios のアップデート中はコケたら文鎮確定なので、できるだけ揺らさないよう細心の注意を払って生活する。
 
-- 大体 6 分くらいでインストールが終わり、いきなりブチっと電源が切れる。
+   - 大体 6 分くらいでインストールが終わり、いきなりブチっと電源が切れる。
 
 6. そのまま起動するとアップデートが完了しているので、BIOS に入り、`GFX configration` > `igpu configration` > `[UMA_SPECIFIED]`に変更し、`UMA Frame buffer size`を 96G に変更すると GPU メモリ割り当てを 96G にできる
    ![gfx](/assets/gfx.png)

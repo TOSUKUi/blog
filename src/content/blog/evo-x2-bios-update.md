@@ -55,13 +55,11 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-pc-setup
 1. PC を起動し、ESC を連打して BIOS に入る
 2. Launch EFI Shell from filesystem device を選択
    ![launchefi](/assets/launch_efi.png)
-3. USB 内部のインストールコマンドを打ちたいので、まず USB デバイスを選択する
-
-   - `AXB35-02_BIOS_UpdateEFI.nsh`を叩きたい
-   - 今回は画像の通り USB は fs1 に該当するので、`Shell> fs1:`を入力すると選択可能
+3. シェル efi が起動する。USB 内部のインストールコマンドを打ちたいので、まず USB デバイスを選択する
    - ![efishell](/assets/efishell.png)
-
-4. nsh ファイルを実行
+4. `Shell> fs1:`を入力し、ワーキングスペースとして USB デバイスを選択する
+   - 今回は fs1 が`removable blockdevice`だの USB だの書いてあるので`fs1`とした
+5. BIOS インストーラを実行
 
    ```
    > cd Shell # Shellディレクトリに移動
@@ -70,10 +68,10 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-pc-setup
 
    ![nsh](/assets/nsh.png)
 
-5. bios のアップデート中はコケたら文鎮確定なので、できるだけ揺らさないよう細心の注意を払って生活する。
+6. bios のアップデート中はコケたら文鎮確定なので、できるだけ揺らさないよう細心の注意を払って生活する。
 
    - 大体 6 分くらいでインストールが終わり、いきなりブチっと電源が切れる。
 
-6. そのまま起動するとアップデートが完了しているので、BIOS に入り、`GFX configration` > `igpu configration` > `[UMA_SPECIFIED]`に変更し、`UMA Frame buffer size`を 96G に変更すると GPU メモリ割り当てを 96G にできる
+7. そのまま起動するとアップデートが完了しているので、BIOS に入り、`GFX configration` > `igpu configration` > `[UMA_SPECIFIED]`に変更し、`UMA Frame buffer size`を 96G に変更すると GPU メモリ割り当てを 96G にできる
    ![gfx](/assets/gfx.png)
    ![96g](/assets/96g.png)

@@ -16,7 +16,7 @@ tags:
   - ll
 ogImage: ""
 description: GMKTEcのEVO-X2で、Windowsでない場合のBIOSアップデート手順がどこにも掲載されていないので備忘録
-canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-pc-setup
+canonicalURL: https://blog.tosukui.xyz/posts/ryzen-ai-pc-bios-update
 ---
 
 # EVO X2 の BIOS アップデート(非 Windows)

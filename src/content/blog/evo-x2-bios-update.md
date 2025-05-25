@@ -15,18 +15,18 @@ tags:
   - 96GB
   - ll
 ogImage: ""
-description: GMKTEcのAI PCをセットアップして、GPUのベンチマークを取ってみた
+description: GMKTEcのEVO-X2で、Windowsでない場合のBIOSアップデート手順がどこにも掲載されていないので備忘録
 canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-pc-setup
 ---
+
+# EVO X2 の BIOS アップデート(非 Windows)
 
 - [EVO X2 の BIOS アップデート(非 Windows)](#evo-x2-の-bios-アップデート非-windows)
   - [1. EFI ブートできる USB を用意する(別の端末で実施)](#1-efi-ブートできる-usb-を用意する別の端末で実施)
     - [準備するもの](#準備するもの)
     - [手順](#手順)
-  - [2. EVO X2 での BIOS アップデート手順](#2-evo-x2でのbiosアップデート手順)
+  - [2. EVO X2 での BIOS アップデート手順](#2-evo-x2-での-bios-アップデート手順)
     - [手順](#手順-1)
-
-# EVO X2 の BIOS アップデート(非 Windows)
 
 ## 1. EFI ブートできる USB を用意する(別の端末で実施)
 

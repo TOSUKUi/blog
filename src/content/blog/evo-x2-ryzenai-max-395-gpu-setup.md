@@ -19,17 +19,17 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-pc-setup
 
 - [概要](#概要)
 - [目標](#目標)
-- [GMKTEC Evo X2 の外観](#gmktec-evo-x2の外観)
-- [HIP を使った環境のセットアップ開始](#hipを使った環境のセットアップ開始)
-  - [NPU はどこいった？](#npuはどこいった)
-  - [llama.cpp を動かす](#llamacppを動かす)
-- [(vulkan に)切り替えていく](#vulkanに切り替えていく)
-- [vulkan 環境の各 LLM モデルのベンチマーク結果](#vulkan環境の各llmモデルのベンチマーク結果)
+- [GMKTEC Evo X2 の外観](#gmktec-evo-x2-の外観)
+- [HIP を使った環境のセットアップ開始](#hip-を使った環境のセットアップ開始)
+  - [NPU はどこいった？](#npu-はどこいった)
+  - [llama.cpp を動かす](#llamacpp-を動かす)
+- [(vulkan に)切り替えていく](#vulkan-に切り替えていく)
+- [vulkan 環境の各 LLM モデルのベンチマーク結果](#vulkan-環境の各-llm-モデルのベンチマーク結果)
   - [Qwen3-235B-A22B_Q3_K_S(95GB)](#qwen3-235b-a22b_q3_k_s95gb)
   - [その他主要モデル](#その他主要モデル)
-- [batch size ごとに prompt processing の速度を検証](#batch-sizeごとにprompt-processingの速度を検証)
+- [batch size ごとに prompt processing の速度を検証](#batch-size-ごとに-prompt-processing-の速度を検証)
   - [ちょっと長いコンテキストの場合](#ちょっと長いコンテキストの場合)
-  - [batch size 120 でそれぞれの LLM の速度検証](#batch-size-120でそれぞれのllmの速度検証)
+  - [batch size 120 でそれぞれの LLM の速度検証](#batch-size-120-でそれぞれの-llm-の速度検証)
 - [失敗例](#失敗例)
 
 # 概要
@@ -928,7 +928,7 @@ ggml_vulkan: 0 = AMD Radeon Graphics (RADV GFX1151) (radv) | uma: 1 | fp16: 1 | 
 ggml_vulkan: Found 1 Vulkan devices:
 ggml_vulkan: 0 = AMD Radeon Graphics (RADV GFX1151) (radv) | uma: 1 | fp16: 1 | warp size: 64 | shared memory: 65536 | int dot: 1 | matrix cores: KHR_coopmat
 | model | size | params | backend | ngl | n_batch | test | t/s |
-| ------------------------------ | ---------: | ---------: | ---------- | --: | ------: | --------------: | -------------------: |
+| ------------------------------ | --------: | ------: | ------- | ---: | ------: | ----: | -------------: |
 | qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan | 99 | 120 | pp512 | 168.89 ± 1.09 |
 | qwen3moe 30B.A3B Q4_K - Medium | 16.49 GiB | 30.53 B | Vulkan | 99 | 120 | tg128 | 71.86 ± 0.27 |
 | qwen3 32B Q4_K - Medium | 18.40 GiB | 32.76 B | Vulkan | 99 | 120 | pp512 | 127.39 ± 1.97 |

@@ -1,5 +1,5 @@
 ---
-title: GMKTec evo x2のllama.cppで、rocm(hip)でビルドして実行したい
+title: GMKTec evo x2上で、rocm(hip)でllama.cppをビルドして実行する
 author: amemiya
 pubDatetime: 2025-06-04T18:00:00Z
 postSlug: gmktec-ryzen-ai-rocm-hip-setup
@@ -13,7 +13,7 @@ tags:
   - npu
   - ll
 ogImage: ""
-description: GMKTEcのAI PCのrocm(hip)環境をセットアップしたい
+description: GMKTEcのAI PCのrocm(hip)環境をセットアップしてllama.cppを動かす記事
 canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-rocm-hip-setup
 ---
 
@@ -28,8 +28,11 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-rocm-hip-setup
 
 # ベンチマークの結果サマリー
 
-- prompt processing は明らかに速くなった(200%以上早い)
-- `token generation`は遅くなった(20%くらい遅い)
+- Qwen3 30B の場合は
+  - prompt processing は明らかに速くなった(200%以上早い)
+  - `token generation`は遅くなった(20%くらい遅い)
+- Llama7 Q4 の場合
+  - 何もかも遅くなった
 - GPU メモリの使える量が vulkan 比較で少ない。vulkan だと(96GB + 16GB(GTT))分の 112GB 使えていたっぽいが、今の所 96GB しかアロケーションできずより大きいモデルの同条件テストができない
   - `GGML_CUDA_ENABLE_UNIFIED_MEMORY=1`はテスト済みだがたぶん違った
 
@@ -39,33 +42,33 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-rocm-hip-setup
 - [ベンチマークの結果サマリー](#ベンチマークの結果サマリー)
 - [全体手順](#全体手順)
 - [環境](#環境)
-  - [1. rocm6.4.0 をインストール(インストールしてない人向け)](#1-rocm640をインストールインストールしてない人向け)
+  - [1. rocm6.4.0 をインストール(インストールしてない人向け)](#1-rocm640-をインストールインストールしてない人向け)
     - [手順](#手順)
-    - [1.amdgpu-install をインストール](#1amdgpu-installをインストール)
+    - [1.amdgpu-install をインストール](#1amdgpu-install-をインストール)
     - [2.再起動してドライバを反映](#2再起動してドライバを反映)
-    - [3. rocm をインストール](#3-rocmをインストール)
+    - [3. rocm をインストール](#3-rocm-をインストール)
       - [リポジトリの登録](#リポジトリの登録)
     - [パッケージの追加](#パッケージの追加)
     - [インストール](#インストール)
     - [インストール後](#インストール後)
       - [確認](#確認)
-  - [llama.cpp のビルド](#llamacppのビルド)
-    - [llama.cpp をクローンしておく](#llamacppをクローンしておく)
-    - [rocWMMA をインストール](#rocwmmaをインストール)
-      - [rocWMMA とは](#rocwmmaとは)
-    - [llama.cpp をビルド](#llamacppをビルド)
-      - [1. llama.cpp の`ggml/src/ggml-cuda/fattn-wmma-f16.cu`を無効化](#1-llamacppのggmlsrcggml-cudafattn-wmma-f16cuを無効化)
+  - [llama.cpp のビルド](#llamacpp-のビルド)
+    - [llama.cpp をクローンしておく](#llamacpp-をクローンしておく)
+    - [rocWMMA をインストール](#rocwmma-をインストール)
+      - [rocWMMA とは](#rocwmma-とは)
+    - [llama.cpp をビルド](#llamacpp-をビルド)
+      - [1. llama.cpp の`ggml/src/ggml-cuda/fattn-wmma-f16.cu`を無効化](#1-llamacpp-のggmlsrcggml-cudafattn-wmma-f16cuを無効化)
       - [2. ビルド](#2-ビルド)
-  - [llama.cpp を動かす](#llamacppを動かす)
-    - [rocBLAS を gfx1151 対応バージョンでビルド](#rocblasをgfx1151対応バージョンでビルド)
-      - [rocBLAS とは？](#rocblasとは)
-    - [1. rocBLAS を gfx1151 向けにビルド\&インストール](#1-rocblasをgfx1151向けにビルドインストール)
+  - [llama.cpp を動かす](#llamacpp-を動かす)
+    - [rocBLAS を gfx1151 対応バージョンでビルド](#rocblas-を-gfx1151-対応バージョンでビルド)
+      - [rocBLAS とは？](#rocblas-とは)
+    - [1. rocBLAS を gfx1151 向けにビルド\&インストール](#1-rocblas-を-gfx1151-向けにビルドインストール)
       - [実行時に必要な環境変数をエクスポートする](#実行時に必要な環境変数をエクスポートする)
-    - [llama.cpp を動かす](#llamacppを動かす-1)
-  - [llama-bench を実行](#llama-benchを実行)
+    - [llama.cpp を動かす](#llamacpp-を動かす-1)
+  - [llama-bench を実行](#llama-bench-を実行)
     - [結果](#結果)
-      - [Qwen30B の場合](#qwen30bの場合)
-      - [LLama2 7B の場合](#llama2-7bの場合)
+      - [Qwen30B の場合](#qwen30b-の場合)
+      - [LLama2 7B の場合](#llama2-7b-の場合)
   - [参考リンク](#参考リンク)
 
 # 環境

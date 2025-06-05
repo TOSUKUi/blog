@@ -42,29 +42,29 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-rocm-hip-setup
 - [ベンチマークの結果サマリー](#ベンチマークの結果サマリー)
 - [全体手順](#全体手順)
 - [環境](#環境)
-  - [1. rocm6.4.0 をインストール(インストールしてない人向け)](#1-rocm640-をインストールインストールしてない人向け)
-    - [手順](#手順)
-    - [1.amdgpu-install をインストール](#1amdgpu-install-をインストール)
-    - [2.再起動してドライバを反映](#2再起動してドライバを反映)
-    - [3. rocm インストール](#3-rocm-インストール)
-      - [リポジトリの登録](#リポジトリの登録)
-    - [パッケージの追加](#パッケージの追加)
-    - [インストール](#インストール)
-    - [インストール後](#インストール後)
-      - [確認](#確認)
-  - [llama.cpp のビルド](#llamacpp-のビルド)
-    - [llama.cpp をクローンしておく](#llamacpp-をクローンしておく)
-    - [rocWMMA をインストール](#rocwmma-をインストール)
-      - [rocWMMA とは](#rocwmma-とは)
-    - [llama.cpp をビルド](#llamacpp-をビルド)
-      - [1. llama.cpp の`ggml/src/ggml-cuda/fattn-wmma-f16.cu`を無効化](#1-llamacpp-のggmlsrcggml-cudafattn-wmma-f16cuを無効化)
-      - [2. ビルド](#2-ビルド)
+- [1. rocm6.4.0 をインストール(インストールしてない人向け)](#1-rocm640-をインストールインストールしてない人向け)
+  - [手順](#手順)
+  - [1.amdgpu-install をインストール](#1amdgpu-install-をインストール)
+  - [2.再起動してドライバを反映](#2再起動してドライバを反映)
+  - [3. rocm インストール](#3-rocm-インストール)
+    - [リポジトリの登録](#リポジトリの登録)
+  - [パッケージの追加](#パッケージの追加)
+  - [インストール](#インストール)
+  - [インストール後](#インストール後)
+    - [確認](#確認)
+- [2.llama.cpp のビルド](#2llamacpp-のビルド)
+  - [llama.cpp をクローンしておく](#llamacpp-をクローンしておく)
+  - [rocWMMA をインストール](#rocwmma-をインストール)
+    - [rocWMMA とは](#rocwmma-とは)
+  - [llama.cpp をビルド](#llamacpp-をビルド)
+    - [llama.cpp の`ggml/src/ggml-cuda/fattn-wmma-f16.cu`を無効化](#llamacpp-のggmlsrcggml-cudafattn-wmma-f16cuを無効化)
+    - [ビルド](#ビルド)
+- [3. llama.cpp を動かす](#3-llamacpp-を動かす)
+  - [rocBLAS を gfx1151 対応バージョンでビルド](#rocblas-を-gfx1151-対応バージョンでビルド)
+    - [rocBLAS とは？](#rocblas-とは)
+  - [rocBLAS を gfx1151 向けにビルド\&インストール](#rocblas-を-gfx1151-向けにビルドインストール)
+    - [実行時に必要な環境変数をエクスポートする](#実行時に必要な環境変数をエクスポートする)
   - [llama.cpp を動かす](#llamacpp-を動かす)
-    - [rocBLAS を gfx1151 対応バージョンでビルド](#rocblas-を-gfx1151-対応バージョンでビルド)
-      - [rocBLAS とは？](#rocblas-とは)
-    - [1. rocBLAS を gfx1151 向けにビルド\&インストール](#1-rocblas-を-gfx1151-向けにビルドインストール)
-      - [実行時に必要な環境変数をエクスポートする](#実行時に必要な環境変数をエクスポートする)
-    - [llama.cpp を動かす](#llamacpp-を動かす-1)
   - [llama-bench を実行](#llama-bench-を実行)
     - [結果](#結果)
       - [Qwen30B の場合](#qwen30b-の場合)
@@ -80,7 +80,7 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-rocm-hip-setup
   Linux amd-ai-worker1 6.11.0-26-generic #26~24.04.1-Ubuntu SMP PREEMPT_DYNAMIC Thu Apr 17 19:20:47 UTC 2 x86_64 x86_64 x86_64 GNU/Linux
   ```
 
-## 1. rocm6.4.0 をインストール(インストールしてない人向け)
+# 1. rocm6.4.0 をインストール(インストールしてない人向け)
 
 まず稼働に必要な ROCm をインストールする。
 
@@ -162,21 +162,21 @@ clinfo
 
 ちなみに rocm のライブラリは`/opt/rocm`以下に全部入っているので、気になったらそこをみると良い
 
-## llama.cpp のビルド
+# 2.llama.cpp のビルド
 
 - この後の作業は[llm-tracker/strix-halo](https://llm-tracker.info/_TOORG/Strix-Halo)が非常に参考になるので、参考に進めていく
 - llm-tracker は AMD GPU 系の情報源としてかなり優秀
 
-### llama.cpp をクローンしておく
+## llama.cpp をクローンしておく
 
 ```bash
 git clone https://github.com/ggml-org/llama.cpp llama.cpp-rocm # rocm向けっぽい名前にしておく
 cd llama.cpp-rocm # ここで作業する
 ```
 
-### rocWMMA をインストール
+## rocWMMA をインストール
 
-#### rocWMMA とは
+### rocWMMA とは
 
 - AMD の最新 GPU 上で混合精度の行列積和演算を高速化する C++ヘッダーライブラリ
 - 今回の llama.cpp の動作も速くなるとの噂
@@ -214,9 +214,9 @@ export HIPCC_COMPILE_FLAGS_APPEND="-I$HOME/llama.cpp/rocWMMA/library/include"
 └── vendor
 ```
 
-### llama.cpp をビルド
+## llama.cpp をビルド
 
-#### 1. llama.cpp の`ggml/src/ggml-cuda/fattn-wmma-f16.cu`を無効化
+### llama.cpp の`ggml/src/ggml-cuda/fattn-wmma-f16.cu`を無効化
 
 ほぼ使われていないにもかかわらず、ビルドエラーを起こすので対策する
 
@@ -236,7 +236,7 @@ void ggml_cuda_flash_attn_ext_wmma_f16(ggml_backend_cuda_context & ctx,
 }
 ```
 
-#### 2. ビルド
+### ビルド
 
 - DGGML_HIP_ROCWMMA_FATTN フラグを有効化すると rocWMMA を有効化してくれる
 
@@ -246,21 +246,21 @@ HIPCXX="$(hipconfig -l)/clang" HIP_PATH="$(hipconfig -R)" cmake -S . -B build -D
 
 問題が起きたらパスがちゃんと通っているか、環境変数がおかしいかなど確認
 
-## llama.cpp を動かす
+# 3. llama.cpp を動かす
 
 実はこのまま`bin/build/llama-server`を走らせるとコケるので、まずはその準備をする
 
-### rocBLAS を gfx1151 対応バージョンでビルド
+## rocBLAS を gfx1151 対応バージョンでビルド
 
 コケる理由は、ROCm を構成するスタックの一部である rocBLAS に、strix halo に搭載される GPU である gfx1151 向けのプリビルドパッケージがないため
 
-#### rocBLAS とは？
+### rocBLAS とは？
 
 - Basic Linear Algebra Subprograms (BLAS)
 - AMD GPU に最適化された線形代数プログラム群
 - ROCm のスタックに似た名前の hipBLAS というのがあるが、こちらは cuBLAS とか rocBLAS とかのライブラリを統一のインターフェースでアクセスできるようにした中間ライブラリだった
 
-### 1. rocBLAS を gfx1151 向けにビルド&インストール
+## rocBLAS を gfx1151 向けにビルド&インストール
 
 ```bash
 # llama.cpp-rocmディレクトリ内で作業
@@ -272,7 +272,7 @@ HIP_PLATFORM=amd ./install.sh -d -j$(nproc) -a gfx1151
 # それなりの時間がかかる
 ```
 
-#### 実行時に必要な環境変数をエクスポートする
+### 実行時に必要な環境変数をエクスポートする
 
 ```
 export ROCBLAS_TENSILE_LIBPATH="$HOME/work/llama.cpp-rocm/rocBLAS/build/release/rocblas-install/lib/rocblas/library"
@@ -283,7 +283,7 @@ export LD_LIBRARY_PATH="$HOME/work/llama.cpp-rocm/rocBLAS/build/release/rocblas-
 - `LD_LIBRARY_PATH`は、実行時には入らないが今後入れるであろう`hipBLASLt`のビルドに必要
 - いずれの環境変数も、何かしら一発で設定できるような仕組みにしておいた方がいいが、.bashrc とかに書くのは toomuch な気がする
 
-### llama.cpp を動かす
+## llama.cpp を動かす
 
 インタラクティブなチャットが開いたらゴールです。
 
@@ -377,4 +377,4 @@ ggml_cuda_init: found 1 ROCm devices:
 
 - amdgpu-install 関連: https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/quick-start.html
 - rocWMMA 関連: https://llm-tracker.info/_TOORG/Strix-Halo#building-rocwmma-version
-- rocBLAS のビルド: https://llm-tracker.info/_TOORG/Strix-Halo#improving-performance
+  - rocBLAS のビルド: https://llm-tracker.info/_TOORG/Strix-Halo#improving-performance

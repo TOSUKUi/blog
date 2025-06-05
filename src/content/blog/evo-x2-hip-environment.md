@@ -22,7 +22,9 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-rocm-hip-setup
 - llama.cpp を rocm6.4.0 でビルドし、実行することがゴール
 - **2025 年 6 月頭時点で ROCm6.4.1 を使わないの？**
   - 色々ごちゃごちゃしてたので正確な検証はできていないが、llama.cpp の動作が異常に遅かったので 6.4.0 にした
-- GPU メモリがなぜか 20GB くらいまでしか使えなかった。これ以上のモデルを動かそうとするとメモリあるのに怒られる
+- GPU メモリがなぜか 32GB くらいまでしか使えなかった。これ以上のモデルを動かそうとするとメモリあるのに怒られる
+
+  - システムメモリの容量を超えるとメモリエラーになる場合があるらしい
 
 - [こちらの記事](https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-rocm-setup)では環境構築をできず vulkan に逃げた
 
@@ -46,7 +48,7 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-rocm-hip-setup
     - [手順](#手順)
     - [1.amdgpu-install をインストール](#1amdgpu-install-をインストール)
     - [2.再起動してドライバを反映](#2再起動してドライバを反映)
-    - [3. rocm をインストール](#3-rocm-をインストール)
+    - [3. rocm インストール](#3-rocm-インストール)
       - [リポジトリの登録](#リポジトリの登録)
     - [パッケージの追加](#パッケージの追加)
     - [インストール](#インストール)
@@ -100,12 +102,11 @@ sudo apt install amdgpu-dkms #ドライバインストール
 
 ### 2.再起動してドライバを反映
 
-### 3. rocm をインストール
+### 3. rocm インストール
 
-デフォルトだと、2025 年 6 月 3 日現在では、rocm6.4.1 がインストールされてしまうため、
-rocm6.4.0 をインストールするように修正する
+デフォルトだと、2025 年 6 月 3 日現在では、rocm6.4.1 がインストールされてしまう
 
-[公式ドキュメント](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/install-methods/multi-version-install/multi-version-install-ubuntu.html)を参考に、6.4.0 のリポジトリを登録してインストールすることを目指す。
+[公式ドキュメント](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/install-methods/multi-version-install/multi-version-install-ubuntu.html)
 
 #### リポジトリの登録
 
@@ -223,7 +224,7 @@ export HIPCC_COMPILE_FLAGS_APPEND="-I$HOME/llama.cpp/rocWMMA/library/include"
 
 既存のコードを削除 OR コメントアウトして、以下のコードで置き換える
 
-```c++
+```c
 // ggml/src/ggml-cuda/fattn-wmma-f16.cu (replacement)
 #include "common.cuh"
 #include "fattn-common.cuh"

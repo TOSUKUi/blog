@@ -31,12 +31,10 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-rocm-hip-setup
 # ベンチマークの結果サマリー
 
 - Qwen3 30B の場合は
-  - prompt processing は明らかに速くなった(200%以上早い)
+  - prompt processing は明らかに速くなった(120%以上早い)
   - `token generation`は遅くなった(20%くらい遅い)
 - Llama7 Q4 の場合
   - 何もかも遅くなった
-- GPU メモリの使える量が vulkan 比較で少ない。vulkan だと(96GB + 16GB(GTT))分の 112GB 使えていたっぽいが、今の所 96GB しかアロケーションできずより大きいモデルの同条件テストができない
-  - `GGML_CUDA_ENABLE_UNIFIED_MEMORY=1`はテスト済みだがたぶん違った
 
 # 全体手順
 

@@ -17,27 +17,6 @@ description: GMKTEcのAI PCのrocm(hip)環境をセットアップしてllama.cp
 canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-rocm-hip-setup
 ---
 
-# はじめに
-
-- llama.cpp を rocm6.4.0 でビルドし、実行することがゴール
-- **2025 年 6 月頭時点で ROCm6.4.1 を使わないの？**
-  - 色々ごちゃごちゃしてたので正確な検証はできていないが、llama.cpp の動作が異常に遅かったので 6.4.0 にした
-- GPU メモリがなぜか 32GB くらいまでしか使えなかった。これ以上のモデルを動かそうとするとメモリあるのに怒られる
-
-  - システムメモリの容量を超えるとメモリエラーになる場合があるらしい
-
-- [こちらの記事](https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-rocm-setup)では環境構築をできず vulkan に逃げた
-
-# ベンチマークの結果サマリー
-
-- Qwen3 30B の場合は
-  - prompt processing は明らかに速くなった(120%以上早い)
-  - `token generation`は遅くなった(20%くらい遅い)
-- Llama7 Q4 の場合
-  - 何もかも遅くなった
-
-# 全体手順
-
 - [はじめに](#はじめに)
 - [ベンチマークの結果サマリー](#ベンチマークの結果サマリー)
 - [全体手順](#全体手順)
@@ -70,6 +49,29 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-rocm-hip-setup
       - [Qwen30B の場合](#qwen30b-の場合)
       - [LLama2 7B の場合](#llama2-7b-の場合)
   - [参考リンク](#参考リンク)
+
+# はじめに
+
+- llama.cpp を rocm6.4.0 でビルドし、実行することがゴール
+- **2025 年 6 月頭時点で ROCm6.4.1 を使わないの？**
+  - 色々ごちゃごちゃしてたので正確な検証はできていないが、llama.cpp の動作が異常に遅かったので 6.4.0 にした
+- GPU メモリがなぜか 32GB くらいまでしか使えなかった。これ以上のモデルを動かそうとするとメモリあるのに怒られる
+
+  - システムメモリの容量を超えるとメモリエラーになる場合があるらしい
+
+- [こちらの記事](https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-pc-setup)では環境構築をできず vulkan に逃げた
+
+# ベンチマークの結果サマリー
+
+vulkan 比較
+
+- Qwen3 30B の場合は
+  - prompt processing は明らかに速くなった(120%以上早い)
+  - `token generation`は遅くなった(20%くらい遅い)
+- Llama7 Q4 の場合
+  - 何もかも遅くなった
+
+# 全体手順
 
 # 環境
 
@@ -291,7 +293,7 @@ export LD_LIBRARY_PATH="$HOME/work/llama.cpp-rocm/rocBLAS/build/release/rocblas-
 build/bin/llama-server --host 0.0.0.0 --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0 -ngl 93 --model /mnt/data/models/llama.cpp/common/Qwen3-30B-A3B-128K-UD-Q8_K_XL.gguf -c 10000
 ```
 
-ちなみに、なぜか 20GB を超えるモデルになると以下のように out of memory で怒られる
+なぜか一定の容量を超えるモデルになると以下のように out of memory で怒られる
 
 序盤に`98148 MiB free`って書いてあるやんけ
 

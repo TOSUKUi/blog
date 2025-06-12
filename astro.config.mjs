@@ -2,6 +2,7 @@ import { defineConfig } from "astro/config";
 import tailwind from "@astrojs/tailwind";
 import react from "@astrojs/react";
 import remarkToc from "remark-toc";
+import remarkLinkCard from 'remark-link-card';
 import remarkCollapse from "remark-collapse";
 import sitemap from "@astrojs/sitemap";
 
@@ -19,7 +20,11 @@ export default defineConfig({
   ],
   markdown: {
     remarkPlugins: [
-      remarkToc,
+      remarkLinkCard,
+      [
+        remarkToc,
+        { heading: "目次" }
+      ],
       [
         remarkCollapse,
         {

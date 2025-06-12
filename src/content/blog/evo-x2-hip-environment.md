@@ -59,7 +59,9 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-rocm-hip-setup
 
   - システムメモリの容量を超えるとメモリエラーになる場合があるらしい
 
-- [こちらの記事](https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-pc-setup)では環境構築をできず vulkan に逃げた
+- こちらの記事では環境構築をできず vulkan に逃げた
+
+https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-pc-setup
 
 # ベンチマークの結果サマリー
 

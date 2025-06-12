@@ -30,7 +30,7 @@ canonicalURL: https://blog.tosukui.xyz/posts/strix-halo-install-xdna-driver
 
 ## 公式リポジトリをクローン
 
-公式リポジトリ: https://github.com/amd/xdna-driver
+https://github.com/amd/xdna-driver
 
 ```bash
 git clone https://github.com/amd/xdna-driver

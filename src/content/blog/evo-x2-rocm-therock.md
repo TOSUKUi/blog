@@ -29,10 +29,29 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-rocm-therock
 
 - ホスト OS は ubuntu24.04 なら動いたが、それ以外の環境は試していない
   - `uname -r` -> 6.11.0-26-generic
+- amdgpu のドライバが既に入っている
+  - 無い人は以下を実行
+    - ```bash
+      wget https://repo.radeon.com/amdgpu-install/6.4.1/ubuntu/noble/amdgpu-install_6.4.60401-1_all.deb
+      sudo apt install ./amdgpu-install_6.4.60401-1_all.deb
+      sudo apt update
+      sudo apt install "linux-headers-$(uname -r)" "linux-modules-extra-$(uname -r)"
+      sudo apt install amdgpu-dkms #ドライバインストール
+      ```
+    - その後再起動
 
-以下の URL をクローンし、README 通りにビルドして実行
+## docker ビルド用リポジトリをクローン
+
+以下の URL をクローンする
 
 https://github.com/TOSUKUi/llama.cpp-therock-docker
+
+```bash
+git clone https://github.com/TOSUKUi/llama.cpp-therock-docker
+cd llama.cpp-therock-docker
+```
+
+ビルド方法は基本 README に書いてあるが、今回はコマンドベースでメモしておく
 
 ## ビルド(gfx1151 向け)
 
@@ -40,11 +59,14 @@ https://github.com/TOSUKUi/llama.cpp-therock-docker
 docker build . --tag llama.cpp:therock-dist-linux-gfx1151-7.0.0rc20250710 --build-arg=therock_tarball_filename=therock-dist-linux-gfx1151-7.0.0rc20250710.tar.gz
 ```
 
+5~6 分かかるので気長に待つ。
+
 ## 実行
 
 ### ベンチマーク
 
 - モデルはこちらを利用: https://huggingface.co/TheBloke/Llama-2-7B-GGUF
+- /path/to/models はモデルをダウンロードしたディレクトリを指定する
 
 ```bash
 docker run -it -p 8080:8080 -v /path/to/models:/app/models --device /dev/kfd --device /dev/dri --security-opt seccomp=unconfined  llama.cpp:therock-dist-linux-gfx1151-7.0.0rc20250710 build/bin/llama-bench -mmp 0 -ngl 99 -m ./models/llama-2-7b.Q4_0.gguf

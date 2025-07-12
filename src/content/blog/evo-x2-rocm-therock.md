@@ -34,9 +34,9 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-rocm-therock
 
 https://github.com/TOSUKUi/llama.cpp-therock-docker
 
-## ビルド
+## ビルド(gfx1151 向け)
 
-```
+```bash
 docker build . --tag llama.cpp:therock-dist-linux-gfx1151-7.0.0rc20250710 --build-arg=therock_tarball_filename=therock-dist-linux-gfx1151-7.0.0rc20250710.tar.gz
 ```
 

@@ -295,6 +295,30 @@ docker 環境で回したものを記載する
 | qwen3moe 235B.A22B Q3_K - Small | 94.47 GiB | 235.09 B | ROCm    |  99 |    0 | pp512 | 125.91 ± 2.24 |
 | qwen3moe 235B.A22B Q3_K - Small | 94.47 GiB | 235.09 B | ROCm    |  99 |    0 | tg128 |  13.52 ± 0.01 |
 
+### 20250807 追記
+
+#### GLM4.5-air A12B
+
+PP が思ったより遅いのと、multi token predict があるにも関わらず t/s は思ったより伸びない
+| model | size | params | backend | ngl | mmap | test | t/s |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | ---: | --------------: | -------------------: |
+| glm4moe 106B.A12B Q4_K - Medium | 68.01 GiB | 110.47 B | ROCm,RPC | 998 | 0 | pp512 | 114.91 ± 0.23 |
+| glm4moe 106B.A12B Q4_K - Medium | 68.01 GiB | 110.47 B | ROCm,RPC | 998 | 0 | tg128 | 20.16 ± 0.02 |
+
+#### gpt-oss 120B
+
+pp も tg もいい感じで、実際にベンチマークしてみて使用感を確かめたいところ
+
+active parameter 5.1b
+https://openai.com/ja-JP/index/introducing-gpt-oss/
+
+| model                    |      size |   params | backend  | ngl |  fa | mmap |  test |            t/s |
+| ------------------------ | --------: | -------: | -------- | --: | --: | ---: | ----: | -------------: |
+| gpt-oss ?B Q4_K - Medium | 58.68 GiB | 116.83 B | ROCm,RPC |  99 |   1 |    0 | pp512 |  356.22 ± 1.23 |
+| gpt-oss ?B Q4_K - Medium | 58.68 GiB | 116.83 B | ROCm,RPC |  99 |   1 |    0 | tg128 |   47.51 ± 0.01 |
+| gpt-oss ?B Q4_K - Medium | 58.68 GiB | 116.83 B | ROCm,RPC |  99 |   0 |    0 | pp512 | 596.35 ± 13.03 |
+| gpt-oss ?B Q4_K - Medium | 58.68 GiB | 116.83 B | ROCm,RPC |  99 |   0 |    0 | tg128 |   48.61 ± 0.04 |
+
 # 参考リンク
 
 https://github.com/TOSUKUi/llama.cpp-therock-docker

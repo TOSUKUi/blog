@@ -23,6 +23,14 @@ canonicalURL: https://blog.tosukui.xyz/posts/gmktec-ryzen-ai-rocm-therock
 
 # 目次
 
+# 注意事項
+
+- **20250808 段階で、まだ正式なビルド方法ではない**
+  - あくまでビルドが通って多少遊べるだけ
+  - サーバーの動作が安定しなかったり落ちたりする
+  - 特に 20000 トークンなど大きく渡すエージェントとしての運用(ccr router などでの運用)だと途中で GPU Hang などを起こして落ちたりして使い物にならない
+    - そういった運用は vulkan の方が安定していそう?
+
 # (推奨)ビルド手順 - docker 版
 
 ## 必要環境
@@ -56,10 +64,14 @@ cd llama.cpp-therock-docker
 ## ビルド(gfx1151 向け)
 
 ```bash
-docker build . --tag llama.cpp:therock-dist-linux-gfx1151-7.0.0rc20250710 --build-arg=therock_tarball_filename=therock-dist-linux-gfx1151-7.0.0rc20250710.tar.gz
+docker build . --tag llama.cpp-therock:latest  --build-arg=therock_tarball_filename=therock-dist-linux-gfx1151-7.0.0rc20250710.tar.gz
 ```
 
 5~6 分かかるので気長に待つ。
+
+ここで指定する tarball のファイル名は、以下の s3 のリストから参照する。
+
+https://therock-nightly-tarball.s3.amazonaws.com/
 
 ## 実行
 
@@ -318,6 +330,13 @@ https://openai.com/ja-JP/index/introducing-gpt-oss/
 | gpt-oss ?B Q4_K - Medium | 58.68 GiB | 116.83 B | ROCm,RPC |  99 |   1 |    0 | tg128 |   47.51 ± 0.01 |
 | gpt-oss ?B Q4_K - Medium | 58.68 GiB | 116.83 B | ROCm,RPC |  99 |   0 |    0 | pp512 | 596.35 ± 13.03 |
 | gpt-oss ?B Q4_K - Medium | 58.68 GiB | 116.83 B | ROCm,RPC |  99 |   0 |    0 | tg128 |   48.61 ± 0.04 |
+
+### 8 月 8 日追記 pp8192 の結果も書く
+
+| model                    |      size |   params | backend  | ngl | mmap |   test |            t/s |
+| ------------------------ | --------: | -------: | -------- | --: | ---: | -----: | -------------: |
+| gpt-oss ?B Q4_K - Medium | 58.68 GiB | 116.83 B | ROCm,RPC |  99 |    0 | pp8192 |  432.96 ± 6.16 |
+| gpt-oss ?B Q4_K - Medium | 58.68 GiB | 116.83 B | ROCm,RPC |  99 |    0 |  pp512 | 562.19 ± 68.35 |
 
 # 参考リンク
 
